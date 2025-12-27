@@ -1,0 +1,170 @@
+{
+  "languageTag": "en-US",
+  "fileDescription": "Strings for salmanshh_simple_spring.",
+  "text": {
+    "behaviors": {
+      "salmanshh_simple_spring": {
+        "name": "Simple Spring",
+        "description": "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.",
+        "help-url": "https://www.construct.net",
+        "aceCategories": {
+          "Spring": "Spring"
+        },
+        "properties": {
+          "stiffness": {
+            "name": "Stiffness",
+            "desc": "How quickly spring responds (0-1), Increase stiffness for faster response."
+          },
+          "damping": {
+            "name": "Damping",
+            "desc": "How much oscillation is dampened (0-1), Increase damping to reduce overshoot."
+          },
+          "precision": {
+            "name": "Precision",
+            "desc": "Threshold to consider animation complete. Lower values require closer proximity to target."
+          }
+        },
+        "actions": {
+          "AddToVelocity": {
+            "list-name": "Add to velocity",
+            "display-text": "Add {0} to velocity",
+            "description": "Add a value to the spring's current velocity.",
+            "params": {
+              "value": {
+                "name": "Value",
+                "desc": "Value to add to velocity."
+              }
+            }
+          },
+          "SetDamping": {
+            "list-name": "Set damping",
+            "display-text": "Set damping to {0}",
+            "description": "Set spring damping (0-1). Higher = less oscillation.",
+            "params": {
+              "value": {
+                "name": "Damping",
+                "desc": "Damping value (0-1)."
+              }
+            }
+          },
+          "SetStiffness": {
+            "list-name": "Set stiffness",
+            "display-text": "Set stiffness to {0}",
+            "description": "Set spring stiffness (0-1). Higher = faster response.",
+            "params": {
+              "value": {
+                "name": "Stiffness",
+                "desc": "Stiffness value (0-1)."
+              }
+            }
+          },
+          "SetVelocity": {
+            "list-name": "Set velocity",
+            "display-text": "Set velocity to {0}",
+            "description": "Set the spring's current velocity.",
+            "params": {
+              "value": {
+                "name": "Velocity",
+                "desc": "Velocity value."
+              }
+            }
+          },
+          "SnapToTarget": {
+            "list-name": "Snap to target",
+            "display-text": "Snap to target",
+            "description": "Instantly jump to the target value.",
+            "params": {}
+          },
+          "SpringFromTo": {
+            "list-name": "Spring from/to",
+            "display-text": "Spring from {0} to {1}",
+            "description": "Spring numeric value from start to target. Inherits velocity if already animating.",
+            "params": {
+              "from": {
+                "name": "From",
+                "desc": "Starting value."
+              },
+              "to": {
+                "name": "To",
+                "desc": "Target value."
+              }
+            }
+          },
+          "SpringFromToAngle": {
+            "list-name": "Spring from/to angle",
+            "display-text": "Spring angle from {0} to {1}",
+            "description": "Spring angle value from start to target. Handles angle wrapping to take shortest path.",
+            "params": {
+              "from": {
+                "name": "From",
+                "desc": "Starting angle in degrees."
+              },
+              "to": {
+                "name": "To",
+                "desc": "Target angle in degrees."
+              }
+            }
+          },
+          "Stop": {
+            "list-name": "Stop",
+            "display-text": "Stop spring",
+            "description": "Stop the spring animation at current value.",
+            "params": {}
+          }
+        },
+        "conditions": {
+          "HasReachedTarget": {
+            "list-name": "Has reached target",
+            "display-text": "Has reached target",
+            "description": "True if the spring has reached its target.",
+            "params": {}
+          },
+          "IsAnimating": {
+            "list-name": "Is animating",
+            "display-text": "Is animating",
+            "description": "True if the spring is currently animating.",
+            "params": {}
+          },
+          "OnReachedTarget": {
+            "list-name": "On reached target",
+            "display-text": "On reached target",
+            "description": "Triggered when the spring reaches its target.",
+            "params": {}
+          }
+        },
+        "expressions": {
+          "Damping": {
+            "translated-name": "Damping",
+            "description": "Get the current damping.",
+            "params": {}
+          },
+          "From": {
+            "translated-name": "From",
+            "description": "Get the from (start) value.",
+            "params": {}
+          },
+          "Stiffness": {
+            "translated-name": "Stiffness",
+            "description": "Get the current stiffness.",
+            "params": {}
+          },
+          "To": {
+            "translated-name": "To",
+            "description": "Get the to (target) value.",
+            "params": {}
+          },
+          "Value": {
+            "translated-name": "Value",
+            "description": "Get the current spring value.",
+            "params": {}
+          },
+          "Velocity": {
+            "translated-name": "Velocity",
+            "description": "Get the current velocity.",
+            "params": {}
+          }
+        }
+      }
+    }
+  }
+}

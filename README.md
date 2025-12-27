@@ -1,0 +1,98 @@
+<img src="./src/icon.svg" width="100" /><br>
+# Simple Spring
+<i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.</i> <br>
+### Version 0.0.0.0
+
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/simple_spring/releases/download/salmanshh_simple_spring-0.0.0.0.c3addon/salmanshh_simple_spring-0.0.0.0.c3addon)
+<br>
+<sub> [See all releases](https://github.com/SalmanShhh/simple_spring/releases) </sub> <br>
+
+#### What's New in 0.0.0.0
+**Added:**
+Initial release.
+
+
+<sub>[View full changelog](#changelog)</sub>
+
+---
+<b><u>Author:</u></b> SalmanShh <br>
+<sub>Made using [CAW](https://marketplace.visualstudio.com/items?itemName=skymen.caw) </sub><br>
+
+## Table of Contents
+- [Usage](#usage)
+- [Examples Files](#examples-files)
+- [Properties](#properties)
+- [Actions](#actions)
+- [Conditions](#conditions)
+- [Expressions](#expressions)
+---
+## Usage
+To build the addon, run the following commands:
+
+```
+npm i
+npm run build
+```
+
+To run the dev server, run
+
+```
+npm i
+npm run dev
+```
+
+## Examples Files
+
+---
+## Properties
+| Property Name | Description | Type |
+| --- | --- | --- |
+| Stiffness | How quickly spring responds (0-1), Increase stiffness for faster response. | float |
+| Damping | How much oscillation is dampened (0-1), Increase damping to reduce overshoot. | float |
+| Mass | Affects momentum (0.1-10), Increase mass to make it heavier/slower. | float |
+| Precision | Threshold to consider animation complete. Lower values require closer proximity to target. | float |
+
+
+---
+## Actions
+| Action | Description | Params
+| --- | --- | --- |
+| Set damping | Set spring damping (0-1). Higher = less oscillation. | Damping             *(number)* <br> |
+| Set mass | Set spring mass (0.1-10). Higher = more momentum. | Mass             *(number)* <br> |
+| Set stiffness | Set spring stiffness (0-1). Higher = faster response. | Stiffness             *(number)* <br> |
+| Snap to target | Instantly jump to the target value. |  |
+| Spring from/to | Spring numeric value from start to target. Inherits velocity if already animating. | From             *(number)* <br>To             *(number)* <br> |
+| Stop | Stop the spring animation at current value. |  |
+
+
+---
+## Conditions
+| Condition | Description | Params
+| --- | --- | --- |
+| Has reached target | True if the spring has reached its target. |  |
+| Is animating | True if the spring is currently animating. |  |
+| On reached target | Triggered when the spring reaches its target. |  |
+
+
+---
+## Expressions
+| Expression | Description | Return Type | Params
+| --- | --- | --- | --- |
+| Damping | Get the current damping. | number |  | 
+| From | Get the from (start) value. | number |  | 
+| Mass | Get the current mass. | number |  | 
+| Stiffness | Get the current stiffness. | number |  | 
+| To | Get the to (target) value. | number |  | 
+| Value | Get the current spring value. | number |  | 
+| Velocity | Get the current velocity. | number |  | 
+
+
+---
+## Changelog
+
+### Version 0.0.0.0
+
+**Added:**
+Initial release.
+
+---
