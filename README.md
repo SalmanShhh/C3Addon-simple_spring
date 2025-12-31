@@ -1,15 +1,15 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.</i> <br>
-### Version 0.0.0.0
+### Version 1.0.0.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/simple_spring/releases/download/salmanshh_simple_spring-0.0.0.0.c3addon/salmanshh_simple_spring-0.0.0.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/simple_spring/releases/download/salmanshh_simple_spring-1.0.0.0.c3addon/salmanshh_simple_spring-1.0.0.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/simple_spring/releases) </sub> <br>
 
-#### What's New in 0.0.0.0
+#### What's New in 1.0.0.0
 **Added:**
-Initial release.
+initial release, fix version ID
 
 
 <sub>[View full changelog](#changelog)</sub>
@@ -89,6 +89,13 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.0.0.0
+
+**Added:**
+initial release, fix version ID
+
+---
 
 ### Version 0.0.0.0
 
