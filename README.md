@@ -47,7 +47,7 @@ npm run dev
 ## Properties
 | Property Name | Description | Type |
 | --- | --- | --- |
-| Stiffness | How quickly spring responds (0-1), Increase stiffness for faster response. | float |
+| Stiffness | How quickly spring responds, Increase stiffness for faster response. | float |
 | Damping | How much oscillation is dampened (0-1), Increase damping to reduce overshoot. | float |
 | Precision | Threshold to consider animation complete. Lower values require closer proximity to target. | float |
 
