@@ -83,7 +83,7 @@ export const properties = [
     type: PROPERTY_TYPE.FLOAT,
     id: "stiffness",
     name: "Stiffness",
-    desc: "How quickly spring responds (0-1), Increase stiffness for faster response.",
+    desc: "How quickly spring responds, Increase stiffness for faster response.",
     options: {
       initialValue: 1.25,
       minValue: 0.,

@@ -13,7 +13,7 @@
         "properties": {
           "stiffness": {
             "name": "Stiffness",
-            "desc": "How quickly spring responds (0-1), Increase stiffness for faster response."
+            "desc": "How quickly spring responds, Increase stiffness for faster response."
           },
           "damping": {
             "name": "Damping",

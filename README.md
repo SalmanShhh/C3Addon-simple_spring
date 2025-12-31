@@ -49,7 +49,6 @@ npm run dev
 | --- | --- | --- |
 | Stiffness | How quickly spring responds (0-1), Increase stiffness for faster response. | float |
 | Damping | How much oscillation is dampened (0-1), Increase damping to reduce overshoot. | float |
-| Mass | Affects momentum (0.1-10), Increase mass to make it heavier/slower. | float |
 | Precision | Threshold to consider animation complete. Lower values require closer proximity to target. | float |
 
 
@@ -57,11 +56,13 @@ npm run dev
 ## Actions
 | Action | Description | Params
 | --- | --- | --- |
+| Add to velocity | Add a value to the spring's current velocity. | Value             *(number)* <br> |
 | Set damping | Set spring damping (0-1). Higher = less oscillation. | Damping             *(number)* <br> |
-| Set mass | Set spring mass (0.1-10). Higher = more momentum. | Mass             *(number)* <br> |
 | Set stiffness | Set spring stiffness (0-1). Higher = faster response. | Stiffness             *(number)* <br> |
+| Set velocity | Set the spring's current velocity. | Velocity             *(number)* <br> |
 | Snap to target | Instantly jump to the target value. |  |
 | Spring from/to | Spring numeric value from start to target. Inherits velocity if already animating. | From             *(number)* <br>To             *(number)* <br> |
+| Spring from/to angle | Spring angle value from start to target. Handles angle wrapping to take shortest path. | From             *(number)* <br>To             *(number)* <br> |
 | Stop | Stop the spring animation at current value. |  |
 
 
@@ -80,7 +81,6 @@ npm run dev
 | --- | --- | --- | --- |
 | Damping | Get the current damping. | number |  | 
 | From | Get the from (start) value. | number |  | 
-| Mass | Get the current mass. | number |  | 
 | Stiffness | Get the current stiffness. | number |  | 
 | To | Get the to (target) value. | number |  | 
 | Value | Get the current spring value. | number |  | 
