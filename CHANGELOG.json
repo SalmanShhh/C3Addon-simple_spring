@@ -8,5 +8,10 @@
     "added": "initial release, fix version ID",
     "changed": "",
     "fixed": ""
+  },
+  "1.1.0.0": {
+    "added": "",
+    "changed": "Rewrote the spring physics logic in instance.js to use fixed-step updates for framerate independence and smoother interpolation. Simplified and renamed internal state variables, improved angle handling, and consolidated finishing/reset logic. ",
+    "fixed": ""
   }
 }
