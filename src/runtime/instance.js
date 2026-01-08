@@ -30,7 +30,7 @@ export default function (parentClass) {
     _tick() {
       if (!this._isAnimating) return;
       
-      const dt = Math.min(this._inst.dt, 0.067); // Cap at ~15fps
+      const dt = Math.min(this.instance.dt, 0.067); // Cap at ~15fps
       this._time += dt;
       
       // Run physics at fixed 60fps
