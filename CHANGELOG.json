@@ -13,5 +13,10 @@
     "added": "",
     "changed": "Rewrote the spring physics logic in instance.js to use fixed-step updates for framerate independence and smoother interpolation. Simplified and renamed internal state variables, improved angle handling, and consolidated finishing/reset logic. ",
     "fixed": ""
+  },
+  "1.1.1.0": {
+    "added": "",
+    "changed": "",
+    "fixed": "fix issue correctly fetching instance deltatime"
   }
 }
