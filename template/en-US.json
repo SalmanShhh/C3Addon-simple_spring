@@ -36,6 +36,33 @@
               }
             }
           },
+          "SetAlwaysSpring": {
+            "list-name": "Set always spring to target",
+            "display-text": "Set always spring to target: {0} to {1} (mode: {2})",
+            "description": "When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target.",
+            "params": {
+              "enabled": {
+                "name": "Enabled",
+                "desc": "Enable or disable always spring mode.",
+                "items": {
+                  "enabled": "Enabled",
+                  "disabled": "Disabled"
+                }
+              },
+              "target": {
+                "name": "Target",
+                "desc": "The target value to spring towards."
+              },
+              "mode": {
+                "name": "Mode",
+                "desc": "Whether to spring as a value or angle.",
+                "items": {
+                  "value": "Value",
+                  "angle": "Angle"
+                }
+              }
+            }
+          },
           "SetDamping": {
             "list-name": "Set damping",
             "display-text": "Set damping to {0}",
@@ -106,9 +133,9 @@
             }
           },
           "Stop": {
-            "list-name": "Stop",
-            "display-text": "Stop spring",
-            "description": "Stop the spring animation at current value.",
+            "list-name": "Stop at current value",
+            "display-text": "Stop spring at current value",
+            "description": "Stop the spring animation and keep the current value.",
             "params": {}
           }
         },

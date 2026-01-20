@@ -1,15 +1,17 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.</i> <br>
-### Version 1.1.1.0
+### Version 1.2.0.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.1.1.0.c3addon/salmanshh_simple_spring-1.1.1.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.2.0.0.c3addon/salmanshh_simple_spring-1.2.0.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.1.1.0
-**Fixed:**
-fix issue correctly fetching instance deltatime
+#### What's New in 1.2.0.0
+**Added:**
+- Add 'SetAlwaysSpring' action 
+- implement always/continuous spring mode functionality
+
 
 <sub>[View full changelog](#changelog)</sub>
 
@@ -56,13 +58,14 @@ npm run dev
 | Action | Description | Params
 | --- | --- | --- |
 | Add to velocity | Add a value to the spring's current velocity. | Value             *(number)* <br> |
+| Set always spring to target | When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target. | Enabled             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
 | Set damping | Set spring damping (0-1). Higher = less oscillation. | Damping             *(number)* <br> |
 | Set stiffness | Set spring stiffness (0-1). Higher = faster response. | Stiffness             *(number)* <br> |
 | Set velocity | Set the spring's current velocity. | Velocity             *(number)* <br> |
 | Snap to target | Instantly jump to the target value. |  |
 | Spring from/to | Spring numeric value from start to target. Inherits velocity if already animating. | From             *(number)* <br>To             *(number)* <br> |
 | Spring from/to angle | Spring angle value from start to target. Handles angle wrapping to take shortest path. | From             *(number)* <br>To             *(number)* <br> |
-| Stop | Stop the spring animation at current value. |  |
+| Stop at current value | Stop the spring animation and keep the current value. |  |
 
 
 ---
@@ -88,6 +91,14 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.2.0.0
+
+**Added:**
+- Add 'SetAlwaysSpring' action 
+- implement always/continuous spring mode functionality
+
+---
 
 ### Version 1.1.1.0
 

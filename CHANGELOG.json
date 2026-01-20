@@ -18,5 +18,10 @@
     "added": "",
     "changed": "",
     "fixed": "fix issue correctly fetching instance deltatime"
+  },
+  "1.2.0.0": {
+    "added": "- Add 'SetAlwaysSpring' action \n- implement always/continuous spring mode functionality",
+    "changed": "",
+    "fixed": ""
   }
 }

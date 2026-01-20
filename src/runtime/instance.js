@@ -18,16 +18,26 @@ export default function (parentClass) {
       this._value = 0;
       this._velocity = 0;
       this._isAnimating = false;
+      this._smoothValue = 0;
       
       // For framerate independence (fixed 60fps physics)
       this._time = 0;
       this._steps = 0;
       this._prevValue = 0;
+      
+      // Always spring mode
+      this._alwaysSpringEnabled = false;
+      this._alwaysSpringMode = 0; // 0 = value, 1 = angle
 
       this._setTicking(true);
     }
     
     _tick() {
+      // Always spring to target if enabled - just keep animating
+      if (this._alwaysSpringEnabled) {
+        this._isAnimating = true;
+      }
+      
       if (!this._isAnimating) return;
       
       const dt = Math.min(this.instance.dt, 0.067); // Cap at ~15fps
@@ -61,7 +71,18 @@ export default function (parentClass) {
     }
     
     _stepPhysics() {
-      const displacement = this._to - this._value;
+      let targetValue = this._to;
+      
+      // For angle mode, find shortest path
+      if (this._alwaysSpringEnabled && this._alwaysSpringMode === 1) {
+        let diff = this._to - this._value;
+        // Normalize to -180 to 180
+        while (diff > 180) diff -= 360;
+        while (diff < -180) diff += 360;
+        targetValue = this._value + diff;
+      }
+      
+      const displacement = targetValue - this._value;
       this._velocity += displacement * this._stiffness;
       this._velocity *= this._damping;
       this._value += this._velocity;
@@ -171,8 +192,13 @@ export default function (parentClass) {
       this._damping = Math.max(0, Math.min(1, Number(v)));
     }
     
-    _stop() {
-      this._finish();
+    _stopAtCurrentValue() {
+      this._to = this._value;
+      this._smoothValue = this._value;
+      this._velocity = 0;
+      this._isAnimating = false;
+      this._time = 0;
+      this._steps = 0;
     }
     
     _snapToTarget() {
@@ -187,6 +213,21 @@ export default function (parentClass) {
     _addToVelocity(v) {
       this._velocity += Number(v);
       this._isAnimating = true;
+    }
+    
+    _setAlwaysSpring(enabled, target, mode) {
+      this._alwaysSpringEnabled = !!enabled;
+      this._to = Number(target);
+      this._alwaysSpringMode = Number(mode);
+      
+      // Initialize value to target if not already animating
+      if (enabled && !this._isAnimating) {
+        this._value = this._to;
+        this._smoothValue = this._to;
+        this._prevValue = this._to;
+        this._time = 0;
+        this._steps = 0;
+      }
     }
     
     _isSpringAnimating() {
@@ -230,7 +271,9 @@ export default function (parentClass) {
         stiff: this._stiffness,
         damp: this._damping,
         prec: this._precision,
-        anim: this._isAnimating
+        anim: this._isAnimating,
+        alwaysEnabled: this._alwaysSpringEnabled,
+        alwaysMode: this._alwaysSpringMode
       };
     }
 
@@ -245,6 +288,8 @@ export default function (parentClass) {
       this._isAnimating = o.anim || false;
       this._smoothValue = this._value;
       this._prevValue = this._value;
+      this._alwaysSpringEnabled = o.alwaysEnabled || false;
+      this._alwaysSpringMode = o.alwaysMode || 0;
     }
     
     _getDebuggerProperties() {
