@@ -1,16 +1,17 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.</i> <br>
-### Version 1.2.0.0
+### Version 1.3.0.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.2.0.0.c3addon/salmanshh_simple_spring-1.2.0.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.3.0.0.c3addon/salmanshh_simple_spring-1.3.0.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.2.0.0
+#### What's New in 1.3.0.0
 **Added:**
-- Add 'SetAlwaysSpring' action 
-- implement always/continuous spring mode functionality
+Add new ACEs: actions (SpringTo, SetAlwaysSpring, SetAlwaysSpringTarget, SetEnabled, SetPrecision), condition (IsEnabled), trigger (OnStarted), and expressions (Progress, Precision). 
+
+Runtime changes: add _isEnabled and gate ticking, implement _springTo (with angle handling), trigger OnStarted when animations start, add precision/enabled setters, always-spring target setter, progress calculation, include enabled in save/load, and expose new debug properties.
 
 
 <sub>[View full changelog](#changelog)</sub>
@@ -51,6 +52,7 @@ npm run dev
 | Stiffness | How quickly spring responds, Increase stiffness for faster response. | float |
 | Damping | How much oscillation is dampened (0-1), Increase damping to reduce overshoot. | float |
 | Precision | Threshold to consider animation complete. Lower values require closer proximity to target. | float |
+| Enabled | Enable or disable the spring behavior. | check |
 
 
 ---
@@ -59,12 +61,16 @@ npm run dev
 | --- | --- | --- |
 | Add to velocity | Add a value to the spring's current velocity. | Value             *(number)* <br> |
 | Set always spring to target | When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target. | Enabled             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
+| Set always spring target | Update the target for always spring mode without changing other settings. Only has an effect when always spring is enabled. | Target             *(number)* <br> |
 | Set damping | Set spring damping (0-1). Higher = less oscillation. | Damping             *(number)* <br> |
+| Set enabled | Enable or disable the spring behavior. | State             *(combo)* <br> |
+| Set precision | Set spring precision threshold (0.0001-1). Lower values require the value to be closer to the target before the animation is considered complete. | Precision             *(number)* <br> |
 | Set stiffness | Set spring stiffness (0-1). Higher = faster response. | Stiffness             *(number)* <br> |
 | Set velocity | Set the spring's current velocity. | Velocity             *(number)* <br> |
 | Snap to target | Instantly jump to the target value. |  |
 | Spring from/to | Spring numeric value from start to target. Inherits velocity if already animating. | From             *(number)* <br>To             *(number)* <br> |
 | Spring from/to angle | Spring angle value from start to target. Handles angle wrapping to take shortest path. | From             *(number)* <br>To             *(number)* <br> |
+| Spring to | Spring to a target value from the current value. Inherits velocity if already animating. Use Angle mode to take the shortest rotational path. | To             *(number)* <br>Mode             *(combo)* <br> |
 | Stop at current value | Stop the spring animation and keep the current value. |  |
 
 
@@ -74,7 +80,9 @@ npm run dev
 | --- | --- | --- |
 | Has reached target | True if the spring has reached its target. |  |
 | Is animating | True if the spring is currently animating. |  |
+| Is enabled | True if the spring behavior is enabled. |  |
 | On reached target | Triggered when the spring reaches its target. |  |
+| On started | Triggered when the spring begins a new animation. |  |
 
 
 ---
@@ -83,6 +91,8 @@ npm run dev
 | --- | --- | --- | --- |
 | Damping | Get the current damping. | number |  | 
 | From | Get the from (start) value. | number |  | 
+| Precision | Get the current precision threshold. | number |  | 
+| Progress | Get the animation progress from 0 (at start) to 1 (at target). | number |  | 
 | Stiffness | Get the current stiffness. | number |  | 
 | To | Get the to (target) value. | number |  | 
 | Value | Get the current spring value. | number |  | 
@@ -91,6 +101,15 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.3.0.0
+
+**Added:**
+Add new ACEs: actions (SpringTo, SetAlwaysSpring, SetAlwaysSpringTarget, SetEnabled, SetPrecision), condition (IsEnabled), trigger (OnStarted), and expressions (Progress, Precision). 
+
+Runtime changes: add _isEnabled and gate ticking, implement _springTo (with angle handling), trigger OnStarted when animations start, add precision/enabled setters, always-spring target setter, progress calculation, include enabled in save/load, and expose new debug properties.
+
+---
 
 ### Version 1.2.0.0
 

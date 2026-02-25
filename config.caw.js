@@ -111,4 +111,13 @@ export const properties = [
       maxValue: 1,
     },
   },
+  {
+    type: PROPERTY_TYPE.CHECK,
+    id: "enabled",
+    name: "Enabled",
+    desc: "Enable or disable the spring behavior.",
+    options: {
+      initialValue: true,
+    },
+  },
 ];

@@ -22,6 +22,10 @@
           "precision": {
             "name": "Precision",
             "desc": "Threshold to consider animation complete. Lower values require closer proximity to target."
+          },
+          "enabled": {
+            "name": "Enabled",
+            "desc": "Enable or disable the spring behavior."
           }
         },
         "actions": {
@@ -63,6 +67,17 @@
               }
             }
           },
+          "SetAlwaysSpringTarget": {
+            "list-name": "Set always spring target",
+            "display-text": "Set always spring target to {0}",
+            "description": "Update the target for always spring mode without changing other settings. Only has an effect when always spring is enabled.",
+            "params": {
+              "target": {
+                "name": "Target",
+                "desc": "The new target value to spring towards."
+              }
+            }
+          },
           "SetDamping": {
             "list-name": "Set damping",
             "display-text": "Set damping to {0}",
@@ -71,6 +86,32 @@
               "value": {
                 "name": "Damping",
                 "desc": "Damping value (0-1)."
+              }
+            }
+          },
+          "SetEnabled": {
+            "list-name": "Set enabled",
+            "display-text": "Set enabled: {0}",
+            "description": "Enable or disable the spring behavior.",
+            "params": {
+              "state": {
+                "name": "State",
+                "desc": "Enable or disable the behavior.",
+                "items": {
+                  "enabled": "Enabled",
+                  "disabled": "Disabled"
+                }
+              }
+            }
+          },
+          "SetPrecision": {
+            "list-name": "Set precision",
+            "display-text": "Set precision to {0}",
+            "description": "Set spring precision threshold (0.0001-1). Lower values require the value to be closer to the target before the animation is considered complete.",
+            "params": {
+              "value": {
+                "name": "Precision",
+                "desc": "Precision threshold (0.0001-1)."
               }
             }
           },
@@ -132,6 +173,25 @@
               }
             }
           },
+          "SpringTo": {
+            "list-name": "Spring to",
+            "display-text": "Spring to {0} (mode: {1})",
+            "description": "Spring to a target value from the current value. Inherits velocity if already animating. Use Angle mode to take the shortest rotational path.",
+            "params": {
+              "to": {
+                "name": "To",
+                "desc": "Target value."
+              },
+              "mode": {
+                "name": "Mode",
+                "desc": "Value: spring a plain number. Angle: take the shortest rotational path (handles 360° wrapping).",
+                "items": {
+                  "value": "Value",
+                  "angle": "Angle"
+                }
+              }
+            }
+          },
           "Stop": {
             "list-name": "Stop at current value",
             "display-text": "Stop spring at current value",
@@ -152,10 +212,22 @@
             "description": "True if the spring is currently animating.",
             "params": {}
           },
+          "IsEnabled": {
+            "list-name": "Is enabled",
+            "display-text": "Is enabled",
+            "description": "True if the spring behavior is enabled.",
+            "params": {}
+          },
           "OnReachedTarget": {
             "list-name": "On reached target",
             "display-text": "On reached target",
             "description": "Triggered when the spring reaches its target.",
+            "params": {}
+          },
+          "OnStarted": {
+            "list-name": "On started",
+            "display-text": "On started",
+            "description": "Triggered when the spring begins a new animation.",
             "params": {}
           }
         },
@@ -168,6 +240,16 @@
           "From": {
             "translated-name": "From",
             "description": "Get the from (start) value.",
+            "params": {}
+          },
+          "Precision": {
+            "translated-name": "Precision",
+            "description": "Get the current precision threshold.",
+            "params": {}
+          },
+          "Progress": {
+            "translated-name": "Progress",
+            "description": "Get the animation progress from 0 (at start) to 1 (at target).",
             "params": {}
           },
           "Stiffness": {

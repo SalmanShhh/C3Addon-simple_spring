@@ -23,5 +23,10 @@
     "added": "- Add 'SetAlwaysSpring' action \n- implement always/continuous spring mode functionality",
     "changed": "",
     "fixed": ""
+  },
+  "1.3.0.0": {
+    "added": "Add new ACEs: actions (SpringTo, SetAlwaysSpring, SetAlwaysSpringTarget, SetEnabled, SetPrecision), condition (IsEnabled), trigger (OnStarted), and expressions (Progress, Precision). \n\nRuntime changes: add _isEnabled and gate ticking, implement _springTo (with angle handling), trigger OnStarted when animations start, add precision/enabled setters, always-spring target setter, progress calculation, include enabled in save/load, and expose new debug properties.",
+    "changed": "",
+    "fixed": ""
   }
 }
