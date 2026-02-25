@@ -7,6 +7,42 @@ const catActions = "Spring";
 
 action(
   catActions,
+  "SpringTo",
+  {
+    highlight: false,
+    deprecated: false,
+    isAsync: false,
+    listName: "Spring to",
+    displayText: "Spring to {0} (mode: {1})",
+    description: "Spring to a target value from the current value. Inherits velocity if already animating. Use Angle mode to take the shortest rotational path.",
+    params: [
+      {
+        id: "to",
+        name: "To",
+        desc: "Target value.",
+        type: "number",
+        initialValue: "100",
+      },
+      {
+        id: "mode",
+        name: "Mode",
+        desc: "Value: spring a plain number. Angle: take the shortest rotational path (handles 360° wrapping).",
+        type: "combo",
+        initialValue: "value",
+        items: [
+          { value: "Value" },
+          { angle: "Angle" },
+        ],
+      },
+    ],
+  },
+  function (to, mode) {
+    this._springTo(to, mode === "angle" ? 1 : 0);
+  }
+);
+
+action(
+  catActions,
   "SpringFromTo",
   {
     highlight: false,
@@ -71,6 +107,107 @@ action(
 
 action(
   catActions,
+  "SetAlwaysSpring",
+  {
+    highlight: false,
+    deprecated: false,
+    isAsync: false,
+    listName: "Set always spring to target",
+    displayText: "Set always spring to target: {0} to {1} (mode: {2})",
+    description: "When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target.",
+    params: [
+      {
+        id: "enabled",
+        name: "Enabled",
+        desc: "Enable or disable always spring mode.",
+        type: "combo",
+        initialValue: "enabled",
+        items: [
+          { enabled: "Enabled" },
+          { disabled: "Disabled" },
+        ],
+      },
+      {
+        id: "target",
+        name: "Target",
+        desc: "The target value to spring towards.",
+        type: "number",
+        initialValue: "0",
+      },
+      {
+        id: "mode",
+        name: "Mode",
+        desc: "Whether to spring as a value or angle.",
+        type: "combo",
+        initialValue: "value",
+        items: [
+          { value: "Value" },
+          { angle: "Angle" },
+        ],
+      },
+    ],
+  },
+  function (enabled, target, mode) {
+    this._setAlwaysSpring(enabled === "enabled", target, mode === "angle" ? 1 : 0);
+  }
+);
+
+action(
+  catActions,
+  "SetAlwaysSpringTarget",
+  {
+    highlight: false,
+    deprecated: false,
+    isAsync: false,
+    listName: "Set always spring target",
+    displayText: "Set always spring target to {0}",
+    description: "Update the target for always spring mode without changing other settings. Only has an effect when always spring is enabled.",
+    params: [
+      {
+        id: "target",
+        name: "Target",
+        desc: "The new target value to spring towards.",
+        type: "number",
+        initialValue: "0",
+      },
+    ],
+  },
+  function (target) {
+    this._setAlwaysSpringTarget(target);
+  }
+);
+
+action(
+  catActions,
+  "SetEnabled",
+  {
+    highlight: false,
+    deprecated: false,
+    isAsync: false,
+    listName: "Set enabled",
+    displayText: "Set enabled: {0}",
+    description: "Enable or disable the spring behavior.",
+    params: [
+      {
+        id: "state",
+        name: "State",
+        desc: "Enable or disable the behavior.",
+        type: "combo",
+        initialValue: "enabled",
+        items: [
+          { enabled: "Enabled" },
+          { disabled: "Disabled" },
+        ],
+      },
+    ],
+  },
+  function (state) {
+    this._setEnabled(state === "enabled");
+  }
+);
+
+action(
+  catActions,
   "SetStiffness",
   {
     highlight: false,
@@ -116,6 +253,31 @@ action(
   },
   function (value) {
     this._setDamping(value);
+  }
+);
+
+action(
+  catActions,
+  "SetPrecision",
+  {
+    highlight: false,
+    deprecated: false,
+    isAsync: false,
+    listName: "Set precision",
+    displayText: "Set precision to {0}",
+    description: "Set spring precision threshold (0.0001-1). Lower values require the value to be closer to the target before the animation is considered complete.",
+    params: [
+      {
+        id: "value",
+        name: "Precision",
+        desc: "Precision threshold (0.0001-1).",
+        type: "number",
+        initialValue: "0.01",
+      },
+    ],
+  },
+  function (value) {
+    this._setPrecision(value);
   }
 );
 
@@ -203,53 +365,6 @@ action(
   }
 );
 
-action(
-  catActions,
-  "SetAlwaysSpring",
-  {
-    highlight: false,
-    deprecated: false,
-    isAsync: false,
-    listName: "Set always spring to target",
-    displayText: "Set always spring to target: {0} to {1} (mode: {2})",
-    description: "When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target.",
-    params: [
-      {
-        id: "enabled",
-        name: "Enabled",
-        desc: "Enable or disable always spring mode.",
-        type: "combo",
-        initialValue: "enabled",
-        items: [
-          { enabled: "Enabled" },
-          { disabled: "Disabled" },
-        ],
-      },
-      {
-        id: "target",
-        name: "Target",
-        desc: "The target value to spring towards.",
-        type: "number",
-        initialValue: "0",
-      },
-      {
-        id: "mode",
-        name: "Mode",
-        desc: "Whether to spring as a value or angle.",
-        type: "combo",
-        initialValue: "value",
-        items: [
-          { value: "Value" },
-          { angle: "Angle" },
-        ],
-      },
-    ],
-  },
-  function (enabled, target, mode) {
-    this._setAlwaysSpring(enabled === "enabled", target, mode === "angle" ? 1 : 0);
-  }
-);
-
 // ============================================================
 // CONDITIONS
 // ============================================================
@@ -274,6 +389,23 @@ condition(
 
 condition(
   catConditions,
+  "IsEnabled",
+  {
+    highlight: false,
+    deprecated: false,
+    isInvertible: true,
+    listName: "Is enabled",
+    displayText: "Is enabled",
+    description: "True if the spring behavior is enabled.",
+    params: [],
+  },
+  function () {
+    return this._isSpringEnabled();
+  }
+);
+
+condition(
+  catConditions,
   "HasReachedTarget",
   {
     highlight: false,
@@ -290,9 +422,26 @@ condition(
 );
 
 // ============================================================
-// TRIGGER
+// TRIGGERS
 // ============================================================
 const catTriggers = "Spring";
+
+condition(
+  catTriggers,
+  "OnStarted",
+  {
+    highlight: false,
+    deprecated: false,
+    isTrigger: true,
+    listName: "On started",
+    displayText: "On started",
+    description: "Triggered when the spring begins a new animation.",
+    params: [],
+  },
+  function () {
+    return true;
+  }
+);
 
 condition(
   catTriggers,
@@ -328,6 +477,21 @@ expression(
   },
   function () {
     return this._getValue();
+  }
+);
+
+expression(
+  catExpressions,
+  "Progress",
+  {
+    highlight: false,
+    deprecated: false,
+    returnType: "number",
+    description: "Get the animation progress from 0 (at start) to 1 (at target).",
+    params: [],
+  },
+  function () {
+    return this._getProgress();
   }
 );
 
@@ -403,5 +567,20 @@ expression(
   },
   function () {
     return this._getDamping();
+  }
+);
+
+expression(
+  catExpressions,
+  "Precision",
+  {
+    highlight: false,
+    deprecated: false,
+    returnType: "number",
+    description: "Get the current precision threshold.",
+    params: [],
+  },
+  function () {
+    return this._getPrecision();
   }
 );
