@@ -1,6 +1,6 @@
-# Simple Spring — User Guide
+# Simple Spring - User Guide
 
-**Simple Spring** is a Construct 3 behavior that applies spring physics to any numeric value. Attach it to an object, tell the spring where to go, and it handles the physics: the value accelerates toward the target, overshoots a little, bounces back, and settles — all with natural-feeling motion. Use it to drive positions, scales, angles, opacities, or any other numeric property without writing a single line of physics code.
+**Simple Spring** is a Construct 3 behavior that applies spring physics to any numeric value. Attach it to an object, tell the spring where to go, and it handles the physics: the value accelerates toward the target, overshoots a little, bounces back, and settles - all with natural-feeling motion. Use it to drive positions, scales, angles, opacities, or any other numeric property without writing a single line of physics code.
 
 ---
 
@@ -28,11 +28,11 @@
 
 ### The problem this addon solves
 
-Smooth, bouncy transitions are a cornerstone of good game feel, but implementing spring physics from scratch means managing velocity, stiffness, damping, deltatime accumulation, and fixed-step physics in every project — then re-tuning it each time. Simple Spring encapsulates all of that into a single behavior so you can go from "I need this sprite to bounce into position" to a working result in three actions.
+Smooth, bouncy transitions are a cornerstone of good game feel, but implementing spring physics from scratch means managing velocity, stiffness, damping, deltatime accumulation, and fixed-step physics in every project - then re-tuning it each time. Simple Spring encapsulates all of that into a single behavior so you can go from "I need this sprite to bounce into position" to a working result in three actions.
 
 ### How a spring works
 
-A **spring value** is a number that chases a **target** using simulated spring physics. Each frame, the spring applies a force proportional to the distance from the value to the target (controlled by **stiffness**), then bleeds off velocity (controlled by **damping**). The result is a value that overshoots slightly, oscillates, and settles — or snaps crisply to the target depending on your settings.
+A **spring value** is a number that chases a **target** using simulated spring physics. Each frame, the spring applies a force proportional to the distance from the value to the target (controlled by **stiffness**), then bleeds off velocity (controlled by **damping**). The result is a value that overshoots slightly, oscillates, and settles - or snaps crisply to the target depending on your settings.
 
 The physics run at a fixed 60 steps per second internally, then sub-step interpolation smooths the result between frames. This means the motion looks identical regardless of whether the game is running at 30 fps or 120 fps.
 
@@ -40,23 +40,23 @@ The physics run at a fixed 60 steps per second internally, then sub-step interpo
 
 | Term | What it means |
 |---|---|
-| **Value** | The current spring output — read this every frame to drive your object |
+| **Value** | The current spring output - read this every frame to drive your object |
 | **Target** (`To`) | Where the spring is heading |
 | **From** | Where the spring started from |
-| **Velocity** | The current speed of the spring value — carries over between calls |
+| **Velocity** | The current speed of the spring value - carries over between calls |
 | **Stiffness** | How aggressively the spring pulls toward the target. Higher = faster, snappier |
 | **Damping** | How quickly oscillation dies out. Higher = less bounce, settles faster |
 | **Precision** | Closeness threshold at which the spring declares itself "done" |
 
 ### Scenarios where this addon excels
 
-- **UI pop-ins** — menus and panels that bounce into position when shown, and ease out when dismissed
-- **Camera follow** — a camera that organically lags behind a fast-moving player and overshoots slightly on direction changes
-- **Health bar and score counters** — numeric displays that spring to a new value rather than snapping instantly
-- **Object squash and stretch** — scale a sprite's X and Y as springs for a reactive, rubbery feel on jump landings
-- **Recoil and kickback** — add impulse velocity to a gun or tank barrel that bounces back after firing
-- **Cursor and aim assist** — a crosshair or aim marker that lags behind the mouse with configurable stiffness
-- **Always-following targets** — a companion, shadow, or indicator that continuously chases a changing position
+- **UI pop-ins** - menus and panels that bounce into position when shown, and ease out when dismissed
+- **Camera follow** - a camera that organically lags behind a fast-moving player and overshoots slightly on direction changes
+- **Health bar and score counters** - numeric displays that spring to a new value rather than snapping instantly
+- **Object squash and stretch** - scale a sprite's X and Y as springs for a reactive, rubbery feel on jump landings
+- **Recoil and kickback** - add impulse velocity to a gun or tank barrel that bounces back after firing
+- **Cursor and aim assist** - a crosshair or aim marker that lags behind the mouse with configurable stiffness
+- **Always-following targets** - a companion, shadow, or indicator that continuously chases a changing position
 
 ---
 
@@ -75,9 +75,9 @@ The physics run at a fixed 60 steps per second internally, then sub-step interpo
 2. In the **Behaviors** panel, click **Add behavior**.
 3. Find **Simple Spring** and click **Add**.
 
-The behavior is now attached. One behavior instance = one spring value. If you need to spring multiple independent values on the same object (e.g., both X position and scale), add the behavior multiple times — each instance tracks its own value independently.
+The behavior is now attached. One behavior instance = one spring value. If you need to spring multiple independent values on the same object (e.g., both X position and scale), add the behavior multiple times - each instance tracks its own value independently.
 
-### First working example — spring an object to a click position
+### First working example - spring an object to a click position
 
 ```
 Event: On left mouse click
@@ -104,7 +104,7 @@ This is the core loop: fire a spring action when something changes, then read `V
 
 ## 3. Behavior Properties
 
-These appear in the Properties Bar when the behavior is selected. They set the **initial** values — you can override all of them at runtime with the corresponding Set actions.
+These appear in the Properties Bar when the behavior is selected. They set the **initial** values - you can override all of them at runtime with the corresponding Set actions.
 
 | Property | Type | Default | Description |
 |---|---|---|---|
@@ -127,7 +127,7 @@ There are three main actions for starting a spring:
 Action: Spring -> Spring to  targetValue  (mode: Value)
 ```
 
-Springs from the **current spring value** toward `targetValue`. Velocity is preserved — if the spring is already moving, it keeps that momentum and redirects it toward the new target. This is the most common action. Use it whenever you want smooth transitions between states and don't need to control the start point.
+Springs from the **current spring value** toward `targetValue`. Velocity is preserved - if the spring is already moving, it keeps that momentum and redirects it toward the new target. This is the most common action. Use it whenever you want smooth transitions between states and don't need to control the start point.
 
 ### Spring From/To (explicit start)
 
@@ -135,7 +135,7 @@ Springs from the **current spring value** toward `targetValue`. Velocity is pres
 Action: Spring -> Spring from 0 to 100
 ```
 
-Resets the spring to `from` and begins moving toward `to`. Discards any existing velocity. Use this when you want a clean, predictable animation with a known start point — for example, showing a value from zero.
+Resets the spring to `from` and begins moving toward `to`. Discards any existing velocity. Use this when you want a clean, predictable animation with a known start point - for example, showing a value from zero.
 
 ### Reading the value every tick
 
@@ -175,7 +175,7 @@ Event: Spring.Progress > 0.5
 
 Angles wrap at 360°, which means a naive spring from 350° to 10° would travel the long way around (340°) instead of the short way (20°). Simple Spring solves this automatically with two angle-aware modes.
 
-### Spring To — Angle mode
+### Spring To - Angle mode
 
 ```
 Action: Spring -> Spring to  targetAngle  (mode: Angle)
@@ -205,7 +205,7 @@ Event: Every tick
 
 ## 6. Always Spring Mode
 
-In **Always Spring** mode the spring never stops — it continuously chases a target that you update every tick. This is ideal for any situation where the goal is a moving or live-computed value: a camera following a character, a crosshair tracking the mouse, or a health indicator following the current HP.
+In **Always Spring** mode the spring never stops - it continuously chases a target that you update every tick. This is ideal for any situation where the goal is a moving or live-computed value: a camera following a character, a crosshair tracking the mouse, or a health indicator following the current HP.
 
 ### Enabling always spring
 
@@ -239,7 +239,7 @@ After disabling, the spring resumes normal behavior: it will animate toward the 
 Action: Spring -> Set always spring to target  Enabled, target: angleToPlayer, mode: Angle
 ```
 
-The shortest-path logic applies continuously — perfect for a turret or character that smoothly rotates toward a moving enemy without spinning the wrong way.
+The shortest-path logic applies continuously - perfect for a turret or character that smoothly rotates toward a moving enemy without spinning the wrong way.
 
 ---
 
@@ -259,7 +259,7 @@ Event: On bullet hit
 
 ### Setting velocity directly
 
-`Set velocity` overrides the current velocity. Use with caution — it discards all existing momentum:
+`Set velocity` overrides the current velocity. Use with caution - it discards all existing momentum:
 
 ```
 Action: Spring -> Set velocity to  500
@@ -292,17 +292,17 @@ The character of the spring comes from three numbers. Here are named presets as 
 
 | Feel | Stiffness | Damping | Notes |
 |---|---|---|---|
-| **Snappy UI** | 0.25 | 0.95 | Fast settle, very slight bounce — good for buttons and panels |
-| **Bouncy** | 0.2 | 0.6 | Noticeable overshoot, several oscillations — good for cartoon objects |
-| **Elastic** | 0.1 | 0.5 | Slow but very springy — use for hanging or stretchy objects |
-| **Smooth drag** | 0.08 | 0.85 | Soft lag, minimal bounce — good for camera follow |
-| **Instant** | 0.5 | 0.99 | Almost no animation — good for numbers and indicators |
-| **Heavy** | 0.05 | 0.9 | Slow response, settles smoothly — good for large or heavy-feeling objects |
+| **Snappy UI** | 0.25 | 0.95 | Fast settle, very slight bounce - good for buttons and panels |
+| **Bouncy** | 0.2 | 0.6 | Noticeable overshoot, several oscillations - good for cartoon objects |
+| **Elastic** | 0.1 | 0.5 | Slow but very springy - use for hanging or stretchy objects |
+| **Smooth drag** | 0.08 | 0.85 | Soft lag, minimal bounce - good for camera follow |
+| **Instant** | 0.5 | 0.99 | Almost no animation - good for numbers and indicators |
+| **Heavy** | 0.05 | 0.9 | Slow response, settles smoothly - good for large or heavy-feeling objects |
 
 ### How stiffness and damping interact
 
-- Think of **stiffness** as how strong the spring is — a high-stiffness spring accelerates fast.
-- Think of **damping** as how much friction the spring has — a high-damping spring bleeds velocity quickly and doesn't oscillate much.
+- Think of **stiffness** as how strong the spring is - a high-stiffness spring accelerates fast.
+- Think of **damping** as how much friction the spring has - a high-damping spring bleeds velocity quickly and doesn't oscillate much.
 - Low damping (< 0.6) with high stiffness produces very fast, very bouncy motion that can feel chaotic.
 - Low stiffness with high damping produces a slow, overdamped drag that never really bounces.
 
@@ -328,7 +328,7 @@ Event: Player enters "precise aiming" mode
 | **Spring angle from** `from` **to** `to` | Same as Spring from/to but normalizes both angles to 0–360 and takes the shortest rotational path. |
 | **Set always spring to target** `enabled/disabled`, `target`, mode: Value/Angle | Enable or disable always-spring mode and set its target and mode. When enabled the spring never stops. |
 | **Set always spring target to** `value` | Update the target for an active always-spring without changing enabled state or mode. |
-| **Set enabled** `enabled/disabled` | Enable or disable the behavior. Disabled springs freeze entirely — no ticking, no updates. |
+| **Set enabled** `enabled/disabled` | Enable or disable the behavior. Disabled springs freeze entirely - no ticking, no updates. |
 | **Set stiffness to** `value` | Override stiffness at runtime (0–1). |
 | **Set damping to** `value` | Override damping at runtime (0–1). |
 | **Set precision to** `value` | Override precision threshold at runtime. |
@@ -353,7 +353,7 @@ Event: Player enters "precise aiming" mode
 
 | Trigger | Description |
 |---|---|
-| **On started** | Fires once when a spring begins a new animation — when `Spring to`, `Spring from/to`, or `Spring angle from/to` starts a previously idle spring. |
+| **On started** | Fires once when a spring begins a new animation - when `Spring to`, `Spring from/to`, or `Spring angle from/to` starts a previously idle spring. |
 | **On reached target** | Fires once when the spring settles at its target (distance and velocity both within precision). Does not fire in always-spring mode. |
 
 ---
@@ -502,7 +502,7 @@ Event: Every tick
 ```
 Event: On notification received
   Action: BadgeSpring -> Spring from  0  to  1
-  // Stiffness: 0.3, Damping: 0.6 — bouncy
+  // Stiffness: 0.3, Damping: 0.6 - bouncy
 
 Event: Every tick
   Action: Badge -> Set width to   32 * BadgeSpring.Value
@@ -539,7 +539,7 @@ Event: On start of layout
 
 ---
 
-### 11. On screen entry — spring-open a dialog
+### 11. On screen entry - spring-open a dialog
 
 **Scenario:** A dialog box opens and fires an event when fully settled.
 
@@ -555,7 +555,7 @@ Event: DialogSpring -> On reached target
 
 ---
 
-### 12. Savegame restore — resume mid-animation
+### 12. Savegame restore - resume mid-animation
 
 **Scenario:** A game is saved mid-animation and the spring state must be preserved across sessions.
 
@@ -563,7 +563,7 @@ Simple Spring automatically saves and restores its full state (value, velocity, 
 
 ---
 
-### 13. Multiple springs on one object — independent axes
+### 13. Multiple springs on one object - independent axes
 
 **Scenario:** A sprite needs independent springs on X position and Y position (they should not interfere).
 
@@ -587,7 +587,7 @@ Event: Every tick
 
 ```
 Event: On mouse button released  (while dragging)
-  // Don't reset — just call SpringTo so velocity is inherited
+  // Don't reset - just call SpringTo so velocity is inherited
   Action: Spring -> Spring to  RestPosition.X  (mode: Value)
   // The spring will shoot past, bounce, and settle
 ```
@@ -622,22 +622,22 @@ Editing `value`, `to`, `velocity`, `stiffness`, `damping`, or `precision` live i
 
 ## 15. Tips and Common Mistakes
 
-- **Don't set X directly in `On started`** — always read `Value` in `Every tick`. The trigger fires once; the driven property needs to be updated every frame.
+- **Don't set X directly in `On started`** - always read `Value` in `Every tick`. The trigger fires once; the driven property needs to be updated every frame.
 
-- **Two springs for two axes** — a single spring tracks one number. If you need to smoothly move an object in 2D space, add the behavior twice: once for X and once for Y.
+- **Two springs for two axes** - a single spring tracks one number. If you need to smoothly move an object in 2D space, add the behavior twice: once for X and once for Y.
 
-- **`Spring to` preserves velocity; `Spring from/to` does not** — use `Spring to` when you want smooth redirects (e.g., clicking a new destination while still moving). Use `Spring from/to` when you need a clean, predictable animation from a known start.
+- **`Spring to` preserves velocity; `Spring from/to` does not** - use `Spring to` when you want smooth redirects (e.g., clicking a new destination while still moving). Use `Spring from/to` when you need a clean, predictable animation from a known start.
 
-- **`Always Spring` never fires `OnReachedTarget`** — if you need a "done" callback, disable always-spring first, then let the spring settle normally.
+- **`Always Spring` never fires `OnReachedTarget`** - if you need a "done" callback, disable always-spring first, then let the spring settle normally.
 
-- **Snapping on layout start** — call `Snap to target` in `On start of layout` to prevent objects from animating in from wherever the spring starts. This is almost always the right thing to do for UI elements placed at their final positions.
+- **Snapping on layout start** - call `Snap to target` in `On start of layout` to prevent objects from animating in from wherever the spring starts. This is almost always the right thing to do for UI elements placed at their final positions.
 
-- **High stiffness + low damping = chaos** — values like stiffness 0.5 / damping 0.3 are technically valid but produce wildly oscillating values that may not look intentional. If your spring looks broken, lower stiffness or raise damping first.
+- **High stiffness + low damping = chaos** - values like stiffness 0.5 / damping 0.3 are technically valid but produce wildly oscillating values that may not look intentional. If your spring looks broken, lower stiffness or raise damping first.
 
-- **Precision too small on slow springs** — if `Precision` is 0.0001 and stiffness is 0.02, the spring may take many seconds to settle. Raise precision if springs seem to animate forever.
+- **Precision too small on slow springs** - if `Precision` is 0.0001 and stiffness is 0.02, the spring may take many seconds to settle. Raise precision if springs seem to animate forever.
 
-- **`Add to velocity` fires even if disabled** — calling `Add to velocity` or `Set velocity` on a disabled spring re-enables animation. If you intentionally froze a spring with `Set enabled: Disabled`, avoid velocity actions during the frozen period.
+- **`Add to velocity` fires even if disabled** - calling `Add to velocity` or `Set velocity` on a disabled spring re-enables animation. If you intentionally froze a spring with `Set enabled: Disabled`, avoid velocity actions during the frozen period.
 
-- **Velocity direction is unsigned** — positive velocity moves the value toward higher numbers; negative velocity moves it toward lower numbers. Know which direction `to` is before injecting an impulse.
+- **Velocity direction is unsigned** - positive velocity moves the value toward higher numbers; negative velocity moves it toward lower numbers. Know which direction `to` is before injecting an impulse.
 
-- **Save/load is automatic** — the full spring state (value, velocity, stiffness, from, to, etc.) is included in Construct 3 savegames with no extra setup.
+- **Save/load is automatic** - the full spring state (value, velocity, stiffness, from, to, etc.) is included in Construct 3 savegames with no extra setup.
