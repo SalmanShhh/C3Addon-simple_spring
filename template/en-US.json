@@ -5,7 +5,7 @@
     "behaviors": {
       "salmanshh_simple_spring": {
         "name": "Simple Spring",
-        "description": "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.",
+        "description": "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance. now includes Mesh effects!",
         "help-url": "https://www.construct.net",
         "aceCategories": {
           "Core_Spring": "Core Spring",

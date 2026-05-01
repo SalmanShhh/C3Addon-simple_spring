@@ -38,5 +38,10 @@
     "added": "- ADDED MESH EFFECTS! (Ripple, Shockwave, Twist, Sway, Wobble, Directional Bend, etc)\n- New ACE \"MeshPresetCombo\"  6 parameters (Preset, Intensity, CenterX/Y, Angle, AutoGrid) allowing you to apply pre-tuned effect combinations in one action call.\n- Mesh effects \n- Mesh Effects Example project.",
     "changed": "",
     "fixed": "- ACEs now in Folder Structure, in line with the rest of my addons"
+  },
+  "1.5.0.1": {
+    "added": "",
+    "changed": "update short description to mention Mesh Effects",
+    "fixed": ""
   }
 }

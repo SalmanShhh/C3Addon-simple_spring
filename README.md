@@ -1,21 +1,16 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
-<i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.</i> <br>
-### Version 1.5.0.0
+<i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance. now includes Mesh effects!</i> <br>
+### Version 1.5.0.1
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.5.0.0.c3addon/salmanshh_simple_spring-1.5.0.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.5.0.1.c3addon/salmanshh_simple_spring-1.5.0.1.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.5.0.0
-**Added:**
-- ADDED MESH EFFECTS! (Ripple, Shockwave, Twist, Sway, Wobble, Directional Bend, etc)
-- New ACE "MeshPresetCombo"  6 parameters (Preset, Intensity, CenterX/Y, Angle, AutoGrid) allowing you to apply pre-tuned effect combinations in one action call.
-- Mesh effects 
-- Mesh Effects Example project.
+#### What's New in 1.5.0.1
+**Changed:**
+update short description to mention Mesh Effects
 
-**Fixed:**
-- ACEs now in Folder Structure, in line with the rest of my addons
 
 <sub>[View full changelog](#changelog)</sub>
 
@@ -147,6 +142,13 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.5.0.1
+
+**Changed:**
+update short description to mention Mesh Effects
+
+---
 
 ### Version 1.5.0.0
 

@@ -14,7 +14,7 @@ export const minConstructVersion = undefined;
 export const author = "SalmanShh";
 export const website = "https://www.construct.net";
 export const documentation = "https://www.construct.net";
-export const description = "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.";
+export const description = "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance. now includes Mesh effects!";
 export const category = ADDON_CATEGORY.GENERAL;
 
 export const hasDomside = false;
