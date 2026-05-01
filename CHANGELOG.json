@@ -33,5 +33,10 @@
     "added": "- Added \"Reset Value\" clears all spring state to a given value\n-  \"stop At Current Value\" and \"Snap To Target\" now fire \"OnStopped\" trigger\n- _isAlwaysSpringEnabled() and _getAlwaysSpringTarget() functions.\n-",
     "changed": "",
     "fixed": "- Takes deltatime from object instead of the runtime. (makes it so it animates correctly with the object's timescale).\n- Removed always-spring's per-frame \"_isAnimating = true\", it now only re-wakes when the spring is actually not settled (dist ≥ precision or speed ≥ precision), no longer continuously running every frame.\n- Debugger values editing fix.\n- \"set Stiffness\" no longer clamps to 1,  only lower-bounds at 0.001, matching the properties.\n- _setAlwaysSpringTarget() now wakes the animation when always-spring is active"
+  },
+  "1.5.0.0": {
+    "added": "- ADDED MESH EFFECTS! (Ripple, Shockwave, Twist, Sway, Wobble, Directional Bend, etc)\n- New ACE \"MeshPresetCombo\"  6 parameters (Preset, Intensity, CenterX/Y, Angle, AutoGrid) allowing you to apply pre-tuned effect combinations in one action call.\n- Mesh effects \n- Mesh Effects Example project.",
+    "changed": "",
+    "fixed": "- ACEs now in Folder Structure, in line with the rest of my addons"
   }
 }

@@ -8,7 +8,10 @@
         "description": "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.",
         "help-url": "https://www.construct.net",
         "aceCategories": {
-          "Spring": "Spring"
+          "Core_Spring": "Core Spring",
+          "Mesh_Effects": "Mesh Effects",
+          "Mesh_Setup": "Mesh Setup",
+          "Mesh_State": "Mesh State"
         },
         "properties": {
           "stiffness": {
@@ -43,7 +46,7 @@
           "Reset": {
             "list-name": "Reset to value",
             "display-text": "Reset spring to {0}",
-            "description": "Instantly reset the spring value and clear velocity. Stops any active animation. Use this to initialize the spring before the first Spring To call.",
+            "description": "Instantly reset the spring value and clear velocity. Stops any active animation.",
             "params": {
               "value": {
                 "name": "Value",
@@ -92,7 +95,7 @@
           "SetDamping": {
             "list-name": "Set damping",
             "display-text": "Set damping to {0}",
-            "description": "Set spring damping (0-1). Higher = less oscillation.",
+            "description": "Set spring damping (0-1). Higher values reduce oscillation.",
             "params": {
               "value": {
                 "name": "Damping",
@@ -114,7 +117,7 @@
           "SetPrecision": {
             "list-name": "Set precision",
             "display-text": "Set precision to {0}",
-            "description": "Set spring precision threshold (0.0001-1). Lower values require the value to be closer to the target before the animation is considered complete.",
+            "description": "Set spring precision threshold (0.0001-1).",
             "params": {
               "value": {
                 "name": "Precision",
@@ -125,11 +128,11 @@
           "SetStiffness": {
             "list-name": "Set stiffness",
             "display-text": "Set stiffness to {0}",
-            "description": "Set spring stiffness (0-1). Higher = faster response.",
+            "description": "Set spring stiffness. Higher values increase responsiveness.",
             "params": {
               "value": {
                 "name": "Stiffness",
-                "desc": "Stiffness value (0-1)."
+                "desc": "Stiffness value."
               }
             }
           },
@@ -204,6 +207,527 @@
             "display-text": "Stop spring at current value",
             "description": "Stop the spring animation and keep the current value.",
             "params": {}
+          },
+          "MeshConstantSway": {
+            "list-name": "Mesh: Start constant sway",
+            "display-text": "Start constant sway angle {0}, strength {1}, wavelength {2}, speed {3}, auto mesh {4}",
+            "description": "Start continuous sinusoidal sway. The mesh keeps swaying automatically each tick until Stop Constant Sway is called. Great for grass, plants, cloth, or flags.",
+            "params": {
+              "angle": {
+                "name": "Angle",
+                "desc": "Direction the wave travels in degrees. 0 = rightward (vertical swaying bands, ideal for grass). 90 = downward (horizontal bands, useful for hanging cloth)."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Peak displacement per sway crest. 0.05 is very subtle rustle, 0.1 is natural breeze, 0.2+ is strong wind."
+              },
+              "wavelength": {
+                "name": "Wavelength",
+                "desc": "Spacing between sway peaks in normalized units. 0.5 gives two peaks across the sprite; 1.0 gives one broad S-curve."
+              },
+              "speed": {
+                "name": "Speed",
+                "desc": "Oscillation speed in cycles per second. 0.5 is slow/lazy, 1.0 is natural breeze, 2.0+ is stormy flutter."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a mesh if none exists. No: skip if no mesh exists.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshDirectionalBend": {
+            "list-name": "Do Mesh Effect: Directional bend",
+            "display-text": "Directional bend angle {0}, strength {1}, radius {2}, falloff {3}, auto mesh {4}",
+            "description": "Bend the mesh toward a direction with stronger motion on the leading edge. Great for wind push, recoil lean, and directional impact anticipation.",
+            "params": {
+              "angle": {
+                "name": "Angle",
+                "desc": "Direction to bend toward in degrees. 0 = right, 90 = down, 180 = left, -90 = up."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Bend intensity. 0.08 is subtle lean, 0.2 is strong directional push, 0.35+ is exaggerated cartoon bend."
+              },
+              "radius": {
+                "name": "Radius",
+                "desc": "How wide the bend influence is from center. 1.0 affects almost the whole sprite, 0.5 keeps bend more central."
+              },
+              "falloff": {
+                "name": "Falloff",
+                "desc": "Linear: even fade. Smooth: softer edges. Exponential: concentrated center influence.",
+                "items": {
+                  "linear": "Linear",
+                  "smooth": "Smooth",
+                  "exponential": "Exponential"
+                }
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5x5 mesh grid if none exists. No: skip if no mesh grid exists.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshImpactTrailWave": {
+            "list-name": "Do Mesh Effect: Impact trail wave",
+            "display-text": "Impact trail wave at ({0}, {1}) angle {2}, strength {3}, wavelength {4}, trail width {5}, auto mesh {6}",
+            "description": "Create a directional banded wave from an impact path. Ideal for slash trails, dash wake distortion, and projectile fly-by pressure waves.",
+            "params": {
+              "centerX": {
+                "name": "Origin X",
+                "desc": "Horizontal origin of the trail wave in normalized sprite space."
+              },
+              "centerY": {
+                "name": "Origin Y",
+                "desc": "Vertical origin of the trail wave in normalized sprite space."
+              },
+              "angle": {
+                "name": "Angle",
+                "desc": "Direction the trail wave travels in degrees. Match to attack or dash direction."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Wave displacement intensity. 0.08 subtle, 0.2 dramatic, 0.35+ extreme."
+              },
+              "wavelength": {
+                "name": "Wavelength",
+                "desc": "Spacing between alternating bands. Smaller values create tighter stripes."
+              },
+              "trailWidth": {
+                "name": "Trail Width",
+                "desc": "Width of the impact corridor around the travel axis. Smaller is tighter slash line; larger is broad shock path."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5x5 mesh grid if none exists. No: skip if no mesh grid exists.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshNoiseJitterBurst": {
+            "list-name": "Do Mesh Effect: Noise jitter burst",
+            "display-text": "Noise jitter burst at ({0}, {1}) strength {2}, radius {3}, falloff {4}, auto mesh {5}",
+            "description": "Apply randomized per-vertex impulse for electric shock, glitch hit, fear tremor, or explosion rattle, then spring back naturally.",
+            "params": {
+              "centerX": {
+                "name": "Center X",
+                "desc": "Horizontal burst origin in normalized sprite space (0=left, 0.5=center, 1=right)."
+              },
+              "centerY": {
+                "name": "Center Y",
+                "desc": "Vertical burst origin in normalized sprite space (0=top, 0.5=center, 1=bottom)."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Jitter intensity. 0.05 is subtle shake, 0.15 is strong tremor, 0.3+ is violent burst."
+              },
+              "radius": {
+                "name": "Radius",
+                "desc": "Area of effect from burst center. 1.0 affects whole sprite, 0.35 keeps jitter localized."
+              },
+              "falloff": {
+                "name": "Falloff",
+                "desc": "Linear: broad shake. Smooth: softer edge blend. Exponential: concentrated center jitter.",
+                "items": {
+                  "linear": "Linear",
+                  "smooth": "Smooth",
+                  "exponential": "Exponential"
+                }
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5x5 mesh grid if none exists. No: skip if no mesh grid exists.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshPresetCombo": {
+            "list-name": "Do Mesh Effect: Preset combo",
+            "display-text": "Apply mesh preset {0}, intensity {1}, center ({2}, {3}), angle {4}, auto mesh {5}",
+            "description": "Apply a pre-configured combination of mesh effects tuned for specific game feel scenarios. Each preset blends 2–4 effects together. Intensity scales all effect strengths proportionally.",
+            "params": {
+              "preset": {
+                "name": "Preset",
+                "desc": "Select a preset combination: Hit Impact (punch + jitter + bend for melee hits), Heavy Slam (shockwave + squash + ripple for large impacts), Sword Trail (impact trail + twist for slashing arcs), Wind Gust (directional bend + wave for environmental forces), Electric Stun (jitter + wobble + ripple for shock effects), Portal Spawn (twist + ripple + shockwave for magical spawns), UI Pop (punch + squash for UI interactions).",
+                "items": {
+                  "hit_impact": "Hit Impact",
+                  "heavy_slam": "Heavy Slam",
+                  "sword_trail": "Sword Trail",
+                  "wind_gust": "Wind Gust",
+                  "electric_stun": "Electric Stun",
+                  "portal_spawn": "Portal Spawn",
+                  "ui_pop": "UI Pop"
+                }
+              },
+              "intensity": {
+                "name": "Intensity",
+                "desc": "Multiplier for all effect strengths in this preset (0.5–2.0 typical). 1.0 is balanced. Lower values create subtle effects; higher values create exaggerated impacts."
+              },
+              "centerX": {
+                "name": "Impact X",
+                "desc": "Horizontal center point for effects (0=left, 0.5=center, 1=right). Ignored by effects that don't use center-based logic (e.g., Wind Gust)."
+              },
+              "centerY": {
+                "name": "Impact Y",
+                "desc": "Vertical center point for effects (0=top, 0.5=center, 1=bottom). Ignored by effects that don't use center-based logic (e.g., Wind Gust)."
+              },
+              "angle": {
+                "name": "Angle (degrees)",
+                "desc": "Direction angle in degrees (0–360). Used by directional effects like Wind Gust and Sword Trail. Ignored by radial presets like Portal Spawn."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshPunch": {
+            "list-name": "Do Mesh Effect: Punch",
+            "display-text": "Punch at ({0}, {1}) strength {2}, radius {3}, falloff {4}, auto mesh {5}",
+            "description": "Blast all mesh vertices outward from a point, then spring back. Good for hit impacts, explosions, and shockwaves.",
+            "params": {
+              "centerX": {
+                "name": "Impact X",
+                "desc": "Horizontal impact point (0=left edge, 0.5=center, 1=right edge). To use a world-space hit position: (HitX - Sprite.BBoxLeft) / Sprite.Width."
+              },
+              "centerY": {
+                "name": "Impact Y",
+                "desc": "Vertical impact point (0=top edge, 0.5=center, 1=bottom edge). To use a world-space hit position: (HitY - Sprite.BBoxTop) / Sprite.Height."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Outward impulse per vertex. 0.2 is a light hit, 0.4 is a heavy impact, 0.6+ is explosive."
+              },
+              "radius": {
+                "name": "Radius",
+                "desc": "How wide the blast spreads (normalized). 1.0 blasts the whole sprite. 0.3 creates a tight, localized dent at the impact point."
+              },
+              "falloff": {
+                "name": "Falloff",
+                "desc": "Linear: uniform strength across radius. Smooth: softer edges, more natural. Exponential: concentrated at center, sharp falloff.",
+                "items": {
+                  "linear": "Linear",
+                  "smooth": "Smooth",
+                  "exponential": "Exponential"
+                }
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshRipple": {
+            "list-name": "Do Mesh Effect: Ripple",
+            "display-text": "Ripple at ({0}, {1}) strength {2}, wavelength {3}, decay {4}, auto mesh {5}",
+            "description": "Emit concentric rings of alternating push/pull from an origin point, like a stone dropped in water.",
+            "params": {
+              "centerX": {
+                "name": "Origin X",
+                "desc": "Horizontal wave origin (0=left edge, 0.5=center, 1=right edge). To use a world-space position: (ObjX - Sprite.BBoxLeft) / Sprite.Width."
+              },
+              "centerY": {
+                "name": "Origin Y",
+                "desc": "Vertical wave origin (0=top edge, 0.5=center, 1=bottom edge). Use 0.5 for a center splash or convert a world-space hit position."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Amplitude of each wave ring. 0.15 is a subtle ripple, 0.35 is a dramatic splash."
+              },
+              "wavelength": {
+                "name": "Wavelength",
+                "desc": "Spacing between rings in normalized units. 0.25 gives ~4 rings across the sprite. 0.5 gives ~2 rings. Larger = fewer, wider rings."
+              },
+              "decay": {
+                "name": "Decay",
+                "desc": "How quickly rings fade with distance from the origin. 0 = uniform rings across the whole sprite. 2 = rings fade quickly. 4+ = rings are very localized."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshShockwave": {
+            "list-name": "Do Mesh Effect: Shockwave",
+            "display-text": "Shockwave at ({0}, {1}) strength {2}, radius {3}, width {4}, auto mesh {5}",
+            "description": "Emit a ring-shaped outward blast that peaks at a set distance from the origin. Unlike Punch, the center is unaffected — only the ring is hit. Good for bomb blasts and sonic booms.",
+            "params": {
+              "centerX": {
+                "name": "Epicenter X",
+                "desc": "Horizontal epicenter (0=left edge, 0.5=center, 1=right edge). To use a world-space position: (ObjX - Sprite.BBoxLeft) / Sprite.Width."
+              },
+              "centerY": {
+                "name": "Epicenter Y",
+                "desc": "Vertical epicenter (0=top edge, 0.5=center, 1=bottom edge). To use a world-space position: (ObjY - Sprite.BBoxTop) / Sprite.Height."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Outward impulse at the ring peak. 0.3 is a solid blast, 0.6 is explosive."
+              },
+              "ringRadius": {
+                "name": "Ring Radius",
+                "desc": "How far from the epicenter the ring sits (normalized). 0.0 puts the ring at the center (similar to Punch). 0.5 = ring is halfway to the sprite edge."
+              },
+              "ringWidth": {
+                "name": "Ring Width",
+                "desc": "Thickness of the ring on each side of the peak (normalized). 0.1 = tight sharp ring. 0.4 = wide, soft blast zone."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshSquashStretch": {
+            "list-name": "Do Mesh Effect: Squash and stretch",
+            "display-text": "Squash/stretch axis {0}, amount {1}, center ({2}, {3}), radius {4}, auto mesh {5}",
+            "description": "Squeeze the sprite along one axis and bow it out along the other, then spring back. Classic animation squash/stretch principle.",
+            "params": {
+              "axis": {
+                "name": "Axis",
+                "desc": "Vertical squashes top-to-bottom (use for landings). Horizontal squashes left-to-right (use for wall hits or wind-up).",
+                "items": {
+                  "horizontal": "Horizontal",
+                  "vertical": "Vertical"
+                }
+              },
+              "amount": {
+                "name": "Amount",
+                "desc": "Impulse strength. 0.15-0.25 is a subtle bounce. 0.4+ is exaggerated cartoon feel. Negative reverses the squeeze direction."
+              },
+              "centerX": {
+                "name": "Pivot X",
+                "desc": "Horizontal pivot point (0=left edge, 0.5=center, 1=right edge). Use 0.5 for a symmetric squash."
+              },
+              "centerY": {
+                "name": "Pivot Y",
+                "desc": "Vertical pivot point (0=top edge, 0.5=center, 1=bottom edge). Use 1.0 for a ground landing (squashes from feet up). Use 0.0 for a ceiling hit."
+              },
+              "radius": {
+                "name": "Radius",
+                "desc": "How far the effect spreads from the pivot (normalized). 1.0 deforms the whole sprite. Lower values create a localized bulge at the pivot point."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshStopSway": {
+            "list-name": "Mesh: Stop constant sway",
+            "display-text": "Stop constant sway",
+            "description": "Stop the continuous sway. The mesh vertices spring back to rest naturally — OnMeshSettled fires when they come to a stop.",
+            "params": {}
+          },
+          "MeshTwist": {
+            "list-name": "Do Mesh Effect: Twist",
+            "display-text": "Twist at ({0}, {1}) strength {2}, radius {3}, falloff {4}, auto mesh {5}",
+            "description": "Swirl the mesh around a pivot in a rotational motion, then spring back. Good for portal effects, magic circles, spin attacks, and tornado impacts.",
+            "params": {
+              "centerX": {
+                "name": "Pivot X",
+                "desc": "Horizontal center of the swirl (0=left edge, 0.5=center, 1=right edge). Use 0.5 for a centered spin."
+              },
+              "centerY": {
+                "name": "Pivot Y",
+                "desc": "Vertical center of the swirl (0=top edge, 0.5=center, 1=bottom edge). Use 0.5 for a centered spin."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Rotational impulse. Positive = clockwise, negative = counter-clockwise. 0.2 is a gentle swirl, 0.5 is dramatic."
+              },
+              "radius": {
+                "name": "Radius",
+                "desc": "How far from the pivot the twist reaches (normalized). 1.0 affects the whole sprite. 0.4 = localized core swirl only."
+              },
+              "falloff": {
+                "name": "Falloff",
+                "desc": "Linear: uniform spin across radius. Smooth: softer edges. Exponential: strongest at center, sharp drop-off.",
+                "items": {
+                  "linear": "Linear",
+                  "smooth": "Smooth",
+                  "exponential": "Exponential"
+                }
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshWave": {
+            "list-name": "Do Mesh Effect: Wave",
+            "display-text": "Wave angle {0}, strength {1}, wavelength {2}, auto mesh {3}",
+            "description": "Push parallel bands of vertices in alternating directions, like a flag rippling in wind. Vertices move perpendicular to the wave travel direction.",
+            "params": {
+              "angle": {
+                "name": "Angle",
+                "desc": "Direction the wave travels across the sprite in degrees. 0 = rightward (creates vertical bands, good for side-wind on a flag). 90 = downward (horizontal bands, good for vertical flutter)."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "Peak displacement per wave crest. 0.1 is a subtle flutter, 0.2 is a strong gust, 0.35+ is violent turbulence."
+              },
+              "wavelength": {
+                "name": "Wavelength",
+                "desc": "Spacing between wave crests in normalized units. 0.5 = two crests across the sprite. 0.25 = four crests (tighter waves). 1.0 = one smooth S-curve across the whole sprite."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "MeshWobble": {
+            "list-name": "Do Mesh Effect: Wobble",
+            "display-text": "Wobble angle {0}, strength {1}, auto mesh {2}",
+            "description": "Shear the mesh in a direction — one side pushes one way, the opposite side pushes back. Good for hit reactions, wind gusts, and attack wind-ups.",
+            "params": {
+              "angle": {
+                "name": "Angle",
+                "desc": "Direction of the shear in degrees. 0 = left/right shear (horizontal hit). 90 = up/down shear (vertical hit). Use angle() to match an attacker's direction."
+              },
+              "strength": {
+                "name": "Strength",
+                "desc": "How far the shear pushes. 0.1 is a subtle nudge, 0.2 is a solid hit, 0.35+ is dramatic. Negative values reverse the shear direction."
+              },
+              "autoMesh": {
+                "name": "Auto Mesh",
+                "desc": "Yes: automatically create a 5×5 mesh grid if none exists (no setup required). No: skip the effect if no grid has been created yet with Create Grid.",
+                "items": {
+                  "yes": "Yes",
+                  "no": "No"
+                }
+              }
+            }
+          },
+          "SetAutoGridResolution": {
+            "list-name": "Mesh: Set auto mesh resolution",
+            "display-text": "Set auto mesh resolution to {0} × {1}",
+            "description": "Set the number of columns and rows used when Auto Mesh = Yes automatically creates a mesh. Higher values produce smoother, more detailed deformation at the cost of CPU. Default is 5×5. For subtle UI effects 4×4 is fine. For smooth squash/stretch on large sprites use 8×8 or higher.",
+            "params": {
+              "cols": {
+                "name": "Columns",
+                "desc": "Number of mesh columns (2–32). More columns = smoother horizontal deformation. 5 is the default. Use 8–10 for smooth results on large sprites."
+              },
+              "rows": {
+                "name": "Rows",
+                "desc": "Number of mesh rows (2–32). More rows = smoother vertical deformation. 5 is the default. Use 8–10 for smooth results on large sprites."
+              }
+            }
+          },
+          "MeshCreateGrid": {
+            "list-name": "Create grid",
+            "display-text": "Create mesh grid {0}x{1}",
+            "description": "Create or replace a mesh grid on the instance and initialize mesh spring state.",
+            "params": {
+              "cols": {
+                "name": "Columns",
+                "desc": "Number of mesh columns (minimum 2)."
+              },
+              "rows": {
+                "name": "Rows",
+                "desc": "Number of mesh rows (minimum 2)."
+              }
+            }
+          },
+          "MeshDestroyGrid": {
+            "list-name": "Destroy grid",
+            "display-text": "Destroy mesh grid",
+            "description": "Destroy the mesh and clear all mesh spring state.",
+            "params": {}
+          },
+          "MeshResetOffsets": {
+            "list-name": "Reset offsets",
+            "display-text": "Reset mesh offsets",
+            "description": "Reset all mesh point offsets and velocities back to rest.",
+            "params": {}
+          },
+          "MeshSetDamping": {
+            "list-name": "Set damping",
+            "display-text": "Set mesh damping to {0}",
+            "description": "Set mesh spring damping.",
+            "params": {
+              "value": {
+                "name": "Damping",
+                "desc": "Mesh spring damping value."
+              }
+            }
+          },
+          "MeshSetEnabled": {
+            "list-name": "Set enabled",
+            "display-text": "Set mesh enabled to {0}",
+            "description": "Enable or disable mesh spring simulation.",
+            "params": {
+              "enabled": {
+                "name": "Enabled",
+                "desc": "Enable or disable mesh spring simulation."
+              }
+            }
+          },
+          "MeshSetPrecision": {
+            "list-name": "Set precision",
+            "display-text": "Set mesh precision to {0}",
+            "description": "Set mesh settle precision.",
+            "params": {
+              "value": {
+                "name": "Precision",
+                "desc": "Mesh precision threshold."
+              }
+            }
+          },
+          "MeshSetStiffness": {
+            "list-name": "Set stiffness",
+            "display-text": "Set mesh stiffness to {0}",
+            "description": "Set mesh spring stiffness.",
+            "params": {
+              "value": {
+                "name": "Stiffness",
+                "desc": "Mesh spring stiffness value."
+              }
+            }
           }
         },
         "conditions": {
@@ -247,6 +771,54 @@
             "list-name": "On stopped",
             "display-text": "On stopped",
             "description": "Triggered when the spring is manually stopped via Stop or Snap to target.",
+            "params": {}
+          },
+          "IsMeshSwayEnabled": {
+            "list-name": "Is mesh sway enabled",
+            "display-text": "Mesh sway is enabled",
+            "description": "True while constant sway is running. Use this to check whether sway was started before starting it again, or to branch logic when sway is active.",
+            "params": {}
+          },
+          "HasMeshSettled": {
+            "list-name": "Has settled",
+            "display-text": "Mesh has settled",
+            "description": "True if mesh motion is currently settled.",
+            "params": {}
+          },
+          "IsMeshAnimating": {
+            "list-name": "Is animating",
+            "display-text": "Mesh is animating",
+            "description": "True if mesh points are currently animating.",
+            "params": {}
+          },
+          "IsMeshEnabled": {
+            "list-name": "Is enabled",
+            "display-text": "Mesh is enabled",
+            "description": "True if mesh spring simulation is enabled.",
+            "params": {}
+          },
+          "IsMeshSupported": {
+            "list-name": "Is supported",
+            "display-text": "Mesh is supported",
+            "description": "True if the attached instance supports mesh API operations.",
+            "params": {}
+          },
+          "OnMeshSettled": {
+            "list-name": "On settled",
+            "display-text": "On mesh settled",
+            "description": "Triggered when mesh spring animation settles.",
+            "params": {}
+          },
+          "OnMeshStarted": {
+            "list-name": "On started",
+            "display-text": "On mesh started",
+            "description": "Triggered when mesh spring animation starts.",
+            "params": {}
+          },
+          "OnMeshUnsupported": {
+            "list-name": "On unsupported",
+            "display-text": "On mesh unsupported",
+            "description": "Triggered when a mesh action is called on an instance that does not support mesh.",
             "params": {}
           }
         },
@@ -294,6 +866,46 @@
           "Velocity": {
             "translated-name": "Velocity",
             "description": "Get the current velocity.",
+            "params": {}
+          },
+          "MeshCols": {
+            "translated-name": "MeshCols",
+            "description": "Get current mesh column count.",
+            "params": {}
+          },
+          "MeshEnergy": {
+            "translated-name": "MeshEnergy",
+            "description": "Total kinetic + displacement energy across all mesh points. Returns 0 when the mesh is fully at rest. Use this to check whether the mesh is still animating e.g. trigger a sound or effect only while energy > 0.01.",
+            "params": {}
+          },
+          "MeshOffsetXAtIndex": {
+            "translated-name": "MeshOffsetXAtIndex",
+            "description": "Get mesh point X offset at index.",
+            "params": {
+              "index": {
+                "name": "Index",
+                "desc": "Flat mesh point index (0 to MeshPointCount - 1)."
+              }
+            }
+          },
+          "MeshOffsetYAtIndex": {
+            "translated-name": "MeshOffsetYAtIndex",
+            "description": "Get mesh point Y offset at index.",
+            "params": {
+              "index": {
+                "name": "Index",
+                "desc": "Flat mesh point index (0 to MeshPointCount - 1)."
+              }
+            }
+          },
+          "MeshPointCount": {
+            "translated-name": "MeshPointCount",
+            "description": "Get total mesh point count for Repeat loop workflows.",
+            "params": {}
+          },
+          "MeshRows": {
+            "translated-name": "MeshRows",
+            "description": "Get current mesh row count.",
             "params": {}
           }
         }

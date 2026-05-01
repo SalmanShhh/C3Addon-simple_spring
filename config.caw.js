@@ -38,7 +38,12 @@ export const files = {
 };
 
 // categories that are not filled will use the folder name
-export const aceCategories = {};
+export const aceCategories = {
+  Core_Spring: "Core Spring",
+  Mesh_Setup: "Mesh Setup",
+  Mesh_Effects: "Mesh Effects",
+  Mesh_State: "Mesh State",
+};
 
 export const info = {
   // icon: "icon.svg",
