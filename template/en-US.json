@@ -40,6 +40,17 @@
               }
             }
           },
+          "Reset": {
+            "list-name": "Reset to value",
+            "display-text": "Reset spring to {0}",
+            "description": "Instantly reset the spring value and clear velocity. Stops any active animation. Use this to initialize the spring before the first Spring To call.",
+            "params": {
+              "value": {
+                "name": "Value",
+                "desc": "Value to reset to."
+              }
+            }
+          },
           "SetAlwaysSpring": {
             "list-name": "Set always spring to target",
             "display-text": "Set always spring to target: {0} to {1} (mode: {2})",
@@ -96,11 +107,7 @@
             "params": {
               "state": {
                 "name": "State",
-                "desc": "Enable or disable the behavior.",
-                "items": {
-                  "enabled": "Enabled",
-                  "disabled": "Disabled"
-                }
+                "desc": "Enable or disable the behavior."
               }
             }
           },
@@ -159,9 +166,9 @@
             }
           },
           "SpringFromToAngle": {
-            "list-name": "Spring from/to angle",
+            "list-name": "Spring from/to angle (deprecated)",
             "display-text": "Spring angle from {0} to {1}",
-            "description": "Spring angle value from start to target. Handles angle wrapping to take shortest path.",
+            "description": "Deprecated: use 'Spring to' with Angle mode instead. Spring angle value from start to target, taking the shortest path.",
             "params": {
               "from": {
                 "name": "From",
@@ -206,6 +213,12 @@
             "description": "True if the spring has reached its target.",
             "params": {}
           },
+          "IsAlwaysSpringEnabled": {
+            "list-name": "Is always spring enabled",
+            "display-text": "Is always spring enabled",
+            "description": "True if always spring mode is currently enabled.",
+            "params": {}
+          },
           "IsAnimating": {
             "list-name": "Is animating",
             "display-text": "Is animating",
@@ -229,9 +242,20 @@
             "display-text": "On started",
             "description": "Triggered when the spring begins a new animation.",
             "params": {}
+          },
+          "OnStopped": {
+            "list-name": "On stopped",
+            "display-text": "On stopped",
+            "description": "Triggered when the spring is manually stopped via Stop or Snap to target.",
+            "params": {}
           }
         },
         "expressions": {
+          "AlwaysSpringTarget": {
+            "translated-name": "AlwaysSpringTarget",
+            "description": "Get the current always spring target value.",
+            "params": {}
+          },
           "Damping": {
             "translated-name": "Damping",
             "description": "Get the current damping.",

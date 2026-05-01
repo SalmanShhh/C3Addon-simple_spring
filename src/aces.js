@@ -37,7 +37,7 @@ action(
     ],
   },
   function (to, mode) {
-    this._springTo(to, mode === "angle" ? 1 : 0);
+    this._springTo(to, mode);
   }
 );
 
@@ -78,11 +78,11 @@ action(
   "SpringFromToAngle",
   {
     highlight: false,
-    deprecated: false,
+    deprecated: true,
     isAsync: false,
-    listName: "Spring from/to angle",
+    listName: "Spring from/to angle (deprecated)",
     displayText: "Spring angle from {0} to {1}",
-    description: "Spring angle value from start to target. Handles angle wrapping to take shortest path.",
+    description: "Deprecated: use 'Spring to' with Angle mode instead. Spring angle value from start to target, taking the shortest path.",
     params: [
       {
         id: "from",
@@ -148,7 +148,7 @@ action(
     ],
   },
   function (enabled, target, mode) {
-    this._setAlwaysSpring(enabled === "enabled", target, mode === "angle" ? 1 : 0);
+    this._setAlwaysSpring(enabled === 0, target, mode);
   }
 );
 
@@ -192,17 +192,13 @@ action(
         id: "state",
         name: "State",
         desc: "Enable or disable the behavior.",
-        type: "combo",
-        initialValue: "enabled",
-        items: [
-          { enabled: "Enabled" },
-          { disabled: "Disabled" },
-        ],
+        type: "boolean",
+        initialValue: "true",
       },
     ],
   },
   function (state) {
-    this._setEnabled(state === "enabled");
+    this._setEnabled(state);
   }
 );
 
@@ -365,6 +361,31 @@ action(
   }
 );
 
+action(
+  catActions,
+  "Reset",
+  {
+    highlight: false,
+    deprecated: false,
+    isAsync: false,
+    listName: "Reset to value",
+    displayText: "Reset spring to {0}",
+    description: "Instantly reset the spring value and clear velocity. Stops any active animation. Use this to initialize the spring before the first Spring To call.",
+    params: [
+      {
+        id: "value",
+        name: "Value",
+        desc: "Value to reset to.",
+        type: "number",
+        initialValue: "0",
+      },
+    ],
+  },
+  function (value) {
+    this._resetToValue(value);
+  }
+);
+
 // ============================================================
 // CONDITIONS
 // ============================================================
@@ -421,6 +442,23 @@ condition(
   }
 );
 
+condition(
+  catConditions,
+  "IsAlwaysSpringEnabled",
+  {
+    highlight: false,
+    deprecated: false,
+    isInvertible: true,
+    listName: "Is always spring enabled",
+    displayText: "Is always spring enabled",
+    description: "True if always spring mode is currently enabled.",
+    params: [],
+  },
+  function () {
+    return this._isAlwaysSpringEnabled();
+  }
+);
+
 // ============================================================
 // TRIGGERS
 // ============================================================
@@ -453,6 +491,23 @@ condition(
     listName: "On reached target",
     displayText: "On reached target",
     description: "Triggered when the spring reaches its target.",
+    params: [],
+  },
+  function () {
+    return true;
+  }
+);
+
+condition(
+  catTriggers,
+  "OnStopped",
+  {
+    highlight: false,
+    deprecated: false,
+    isTrigger: true,
+    listName: "On stopped",
+    displayText: "On stopped",
+    description: "Triggered when the spring is manually stopped via Stop or Snap to target.",
     params: [],
   },
   function () {
@@ -582,5 +637,20 @@ expression(
   },
   function () {
     return this._getPrecision();
+  }
+);
+
+expression(
+  catExpressions,
+  "AlwaysSpringTarget",
+  {
+    highlight: false,
+    deprecated: false,
+    returnType: "number",
+    description: "Get the current always spring target value.",
+    params: [],
+  },
+  function () {
+    return this._getAlwaysSpringTarget();
   }
 );

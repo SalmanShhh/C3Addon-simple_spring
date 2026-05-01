@@ -36,14 +36,18 @@ export default function (parentClass) {
     _tick() {
       if (!this._isEnabled) return;
 
-      // Always spring to target if enabled - just keep animating
-      if (this._alwaysSpringEnabled) {
-        this._isAnimating = true;
+      // Always spring to target if enabled — wake up only when not settled
+      if (this._alwaysSpringEnabled && !this._isAnimating) {
+        const dist = Math.abs(this._to - this._value);
+        const speed = Math.abs(this._velocity);
+        if (dist >= this._precision || speed >= this._precision) {
+          this._isAnimating = true;
+        }
       }
 
       if (!this._isAnimating) return;
 
-      const dt = Math.min(this.instance.dt, 0.067); // Cap at ~15fps
+      const dt = Math.min(this.instance.runtime.dt, 0.067); // Cap at ~15fps
       this._time += dt;
 
       // Run physics at fixed 60fps
@@ -236,7 +240,7 @@ export default function (parentClass) {
     }
 
     _setStiffness(v) {
-      this._stiffness = Math.max(0.01, Math.min(1, Number(v)));
+      this._stiffness = Math.max(0.001, Number(v));
     }
 
     _setDamping(v) {
@@ -258,10 +262,20 @@ export default function (parentClass) {
       this._isAnimating = false;
       this._time = 0;
       this._steps = 0;
+      this._trigger("OnStopped");
     }
 
     _snapToTarget() {
       this._finish();
+      this._trigger("OnStopped");
+    }
+
+    _resetToValue(v) {
+      v = Number(v);
+      this._from = v;
+      this._to = v;
+      this._reset(v);
+      this._isAnimating = false;
     }
 
     _setVelocity(v) {
@@ -291,6 +305,17 @@ export default function (parentClass) {
 
     _setAlwaysSpringTarget(target) {
       this._to = Number(target);
+      if (this._alwaysSpringEnabled) {
+        this._isAnimating = true;
+      }
+    }
+
+    _isAlwaysSpringEnabled() {
+      return this._alwaysSpringEnabled;
+    }
+
+    _getAlwaysSpringTarget() {
+      return this._to;
     }
 
     _isSpringAnimating() {
@@ -378,13 +403,13 @@ export default function (parentClass) {
         properties: [
           { name: "$isEnabled", value: this._isEnabled },
           { name: "$isAnimating", value: this._isAnimating },
-          { name: "$value", value: this._value, onedit: v => this._value = v },
+          { name: "$value", value: this._value, onedit: v => { this._value = +v; this._smoothValue = +v; } },
           { name: "$from", value: this._from },
-          { name: "$to", value: this._to, onedit: v => this._to = v },
-          { name: "$velocity", value: this._velocity, onedit: v => this._velocity = v },
-          { name: "$stiffness", value: this._stiffness, onedit: v => this._stiffness = v },
-          { name: "$damping", value: this._damping, onedit: v => this._damping = v },
-          { name: "$precision", value: this._precision, onedit: v => this._precision = v },
+          { name: "$to", value: this._to, onedit: v => { this._to = +v; this._isAnimating = true; } },
+          { name: "$velocity", value: this._velocity, onedit: v => { this._velocity = +v; this._isAnimating = true; } },
+          { name: "$stiffness", value: this._stiffness, onedit: v => this._stiffness = Math.max(0.001, +v) },
+          { name: "$damping", value: this._damping, onedit: v => this._damping = Math.max(0, Math.min(1, +v)) },
+          { name: "$precision", value: this._precision, onedit: v => this._precision = Math.max(0.0001, +v) },
           { name: "$alwaysSpring", value: this._alwaysSpringEnabled },
         ]
       }];

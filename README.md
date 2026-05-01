@@ -1,20 +1,25 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance.</i> <br>
-### Version 1.3.0.0
+### Version 1.4.0.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.3.0.0.c3addon/salmanshh_simple_spring-1.3.0.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.4.0.0.c3addon/salmanshh_simple_spring-1.4.0.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.3.0.0
+#### What's New in 1.4.0.0
 **Added:**
-Add new ACEs: actions (SpringTo, SetAlwaysSpring, SetAlwaysSpringTarget, SetEnabled, SetPrecision), condition (IsEnabled), trigger (OnStarted), and expressions (Progress, Precision). 
+- Added "Reset Value" clears all spring state to a given value
+-  "stop At Current Value" and "Snap To Target" now fire "OnStopped" trigger
+- _isAlwaysSpringEnabled() and _getAlwaysSpringTarget() functions.
+-
 
-Runtime changes: add _isEnabled and gate ticking, implement _springTo (with angle handling), trigger OnStarted when animations start, add precision/enabled setters, always-spring target setter, progress calculation, include enabled in save/load, and expose new debug properties.
-
-add Guide
-
+**Fixed:**
+- Takes deltatime from object instead of the runtime. (makes it so it animates correctly with the object's timescale).
+- Removed always-spring's per-frame "_isAnimating = true", it now only re-wakes when the spring is actually not settled (dist ≥ precision or speed ≥ precision), no longer continuously running every frame.
+- Debugger values editing fix.
+- "set Stiffness" no longer clamps to 1,  only lower-bounds at 0.001, matching the properties.
+- _setAlwaysSpringTarget() now wakes the animation when always-spring is active
 
 <sub>[View full changelog](#changelog)</sub>
 
@@ -62,16 +67,17 @@ npm run dev
 | Action | Description | Params
 | --- | --- | --- |
 | Add to velocity | Add a value to the spring's current velocity. | Value             *(number)* <br> |
+| Reset to value | Instantly reset the spring value and clear velocity. Stops any active animation. Use this to initialize the spring before the first Spring To call. | Value             *(number)* <br> |
 | Set always spring to target | When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target. | Enabled             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
 | Set always spring target | Update the target for always spring mode without changing other settings. Only has an effect when always spring is enabled. | Target             *(number)* <br> |
 | Set damping | Set spring damping (0-1). Higher = less oscillation. | Damping             *(number)* <br> |
-| Set enabled | Enable or disable the spring behavior. | State             *(combo)* <br> |
+| Set enabled | Enable or disable the spring behavior. | State             *(boolean)* <br> |
 | Set precision | Set spring precision threshold (0.0001-1). Lower values require the value to be closer to the target before the animation is considered complete. | Precision             *(number)* <br> |
 | Set stiffness | Set spring stiffness (0-1). Higher = faster response. | Stiffness             *(number)* <br> |
 | Set velocity | Set the spring's current velocity. | Velocity             *(number)* <br> |
 | Snap to target | Instantly jump to the target value. |  |
 | Spring from/to | Spring numeric value from start to target. Inherits velocity if already animating. | From             *(number)* <br>To             *(number)* <br> |
-| Spring from/to angle | Spring angle value from start to target. Handles angle wrapping to take shortest path. | From             *(number)* <br>To             *(number)* <br> |
+| Spring from/to angle (deprecated) | Deprecated: use 'Spring to' with Angle mode instead. Spring angle value from start to target, taking the shortest path. | From             *(number)* <br>To             *(number)* <br> |
 | Spring to | Spring to a target value from the current value. Inherits velocity if already animating. Use Angle mode to take the shortest rotational path. | To             *(number)* <br>Mode             *(combo)* <br> |
 | Stop at current value | Stop the spring animation and keep the current value. |  |
 
@@ -81,16 +87,19 @@ npm run dev
 | Condition | Description | Params
 | --- | --- | --- |
 | Has reached target | True if the spring has reached its target. |  |
+| Is always spring enabled | True if always spring mode is currently enabled. |  |
 | Is animating | True if the spring is currently animating. |  |
 | Is enabled | True if the spring behavior is enabled. |  |
 | On reached target | Triggered when the spring reaches its target. |  |
 | On started | Triggered when the spring begins a new animation. |  |
+| On stopped | Triggered when the spring is manually stopped via Stop or Snap to target. |  |
 
 
 ---
 ## Expressions
 | Expression | Description | Return Type | Params
 | --- | --- | --- | --- |
+| AlwaysSpringTarget | Get the current always spring target value. | number |  | 
 | Damping | Get the current damping. | number |  | 
 | From | Get the from (start) value. | number |  | 
 | Precision | Get the current precision threshold. | number |  | 
@@ -103,6 +112,22 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.4.0.0
+
+**Added:**
+- Added "Reset Value" clears all spring state to a given value
+-  "stop At Current Value" and "Snap To Target" now fire "OnStopped" trigger
+- _isAlwaysSpringEnabled() and _getAlwaysSpringTarget() functions.
+-
+
+**Fixed:**
+- Takes deltatime from object instead of the runtime. (makes it so it animates correctly with the object's timescale).
+- Removed always-spring's per-frame "_isAnimating = true", it now only re-wakes when the spring is actually not settled (dist ≥ precision or speed ≥ precision), no longer continuously running every frame.
+- Debugger values editing fix.
+- "set Stiffness" no longer clamps to 1,  only lower-bounds at 0.001, matching the properties.
+- _setAlwaysSpringTarget() now wakes the animation when always-spring is active
+---
 
 ### Version 1.3.0.0
 

@@ -28,5 +28,10 @@
     "added": "Add new ACEs: actions (SpringTo, SetAlwaysSpring, SetAlwaysSpringTarget, SetEnabled, SetPrecision), condition (IsEnabled), trigger (OnStarted), and expressions (Progress, Precision). \n\nRuntime changes: add _isEnabled and gate ticking, implement _springTo (with angle handling), trigger OnStarted when animations start, add precision/enabled setters, always-spring target setter, progress calculation, include enabled in save/load, and expose new debug properties.\n\nadd Guide",
     "changed": "",
     "fixed": ""
+  },
+  "1.4.0.0": {
+    "added": "- Added \"Reset Value\" clears all spring state to a given value\n-  \"stop At Current Value\" and \"Snap To Target\" now fire \"OnStopped\" trigger\n- _isAlwaysSpringEnabled() and _getAlwaysSpringTarget() functions.\n-",
+    "changed": "",
+    "fixed": "- Takes deltatime from object instead of the runtime. (makes it so it animates correctly with the object's timescale).\n- Removed always-spring's per-frame \"_isAnimating = true\", it now only re-wakes when the spring is actually not settled (dist ≥ precision or speed ≥ precision), no longer continuously running every frame.\n- Debugger values editing fix.\n- \"set Stiffness\" no longer clamps to 1,  only lower-bounds at 0.001, matching the properties.\n- _setAlwaysSpringTarget() now wakes the animation when always-spring is active"
   }
 }
