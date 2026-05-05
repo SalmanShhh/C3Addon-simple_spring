@@ -35,9 +35,9 @@
           }
         },
         "actions": {
-          "ApplySprungColourToObject": {
-            "list-name": "Apply sprung colour to object",
-            "display-text": "Apply sprung colour {0} to object",
+          "ApplySpringColourToObject": {
+            "list-name": "Apply spring colour to object",
+            "display-text": "Apply spring colour {0} to object",
             "description": "One-shot apply of the current sprung colour to the host object using supported runtime colour APIs. For fewer actions, use Spring/Reset colour ACEs with Apply To Object = Yes.",
             "params": {
               "springId": {

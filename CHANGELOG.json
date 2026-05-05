@@ -48,5 +48,10 @@
     "added": "- Added Colour Springing ACEs.\n- Added Transform Springing ACEs.\n- Added Multi-Springing Support.\n- Added More Mesh Effect Presets (Explosion Burst, Jelly Bounce, Whip Lash, Teleport Glitch).",
     "changed": "- Core Springing ACEs have been deprecated but still work, shouldn't show up anymore in the editor and descriptions will tell you an alternative ACEs to use.\n- Colour Springing: only one active ID can drive object colour at a time\n- Transform: one active ID each for Position, Size, and Angle",
     "fixed": ""
+  },
+  "1.6.0.1": {
+    "added": "",
+    "changed": "",
+    "fixed": ""
   }
 }

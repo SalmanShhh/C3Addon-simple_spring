@@ -1,26 +1,11 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics with multiple named springs per behavior instance, plus object-level mesh effects.</i> <br>
-### Version 1.6.0.0
+### Version 1.6.0.1
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.6.0.0.c3addon/salmanshh_simple_spring-1.6.0.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.6.0.1.c3addon/salmanshh_simple_spring-1.6.0.1.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
-
-#### What's New in 1.6.0.0
-**Added:**
-- Added Colour Springing ACEs.
-- Added Transform Springing ACEs.
-- Added Multi-Springing Support.
-- Added More Mesh Effect Presets (Explosion Burst, Jelly Bounce, Whip Lash, Teleport Glitch).
-
-**Changed:**
-- Core Springing ACEs have been deprecated but still work, shouldn't show up anymore in the editor and descriptions will tell you an alternative ACEs to use.
-- Colour Springing: only one active ID can drive object colour at a time
-- Transform: one active ID each for Position, Size, and Angle
-
-
-<sub>[View full changelog](#changelog)</sub>
 
 ---
 <b><u>Author:</u></b> SalmanShh <br>
@@ -69,7 +54,7 @@ npm run dev
 ## Actions
 | Action | Description | Params
 | --- | --- | --- |
-| Apply sprung colour to object | One-shot apply of the current sprung colour to the host object using supported runtime colour APIs. For fewer actions, use Spring/Reset colour ACEs with Apply To Object = Yes. | Spring ID             *(string)* <br> |
+| Apply spring colour to object | One-shot apply of the current sprung colour to the host object using supported runtime colour APIs. For fewer actions, use Spring/Reset colour ACEs with Apply To Object = Yes. | Spring ID             *(string)* <br> |
 | Reset colour spring | Instantly reset all channels of a named colour spring to a value using the selected colour space, with optional object apply. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Channel 1             *(number)* <br>Channel 2             *(number)* <br>Channel 3             *(number)* <br>Use For Instance             *(combo)* <br> |
 | Set colour spring settings | Set stiffness, damping, and precision for all three channels of a named colour spring. | Spring ID             *(string)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
 | Spring colour | Combined colour spring action for current-to-target or from-to workflows, with instance toggle. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Start Mode             *(combo)* <br>From Channel 1             *(number)* <br>From Channel 2             *(number)* <br>From Channel 3             *(number)* <br>To Channel 1             *(number)* <br>To Channel 2             *(number)* <br>To Channel 3             *(number)* <br>Use For Instance             *(combo)* <br> |
@@ -196,6 +181,10 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.6.0.1
+
+---
 
 ### Version 1.6.0.0
 
