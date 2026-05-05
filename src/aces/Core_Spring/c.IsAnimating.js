@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "Is animating",
   displayText: "Is animating",
-  description: "True if the spring is currently animating.",
+  description: "Deprecated. Use 'Is spring animating' in the Multi Spring category instead.",
   isInvertible: true,
   params: [],
 };

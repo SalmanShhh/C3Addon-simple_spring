@@ -6,7 +6,7 @@ export const config = {
     {
       id: "preset",
       name: "Preset",
-      desc: "Select a preset combination: Hit Impact (punch + jitter + bend for melee hits), Heavy Slam (shockwave + squash + ripple for large impacts), Sword Trail (impact trail + twist for slashing arcs), Wind Gust (directional bend + wave for environmental forces), Electric Stun (jitter + wobble + ripple for shock effects), Portal Spawn (twist + ripple + shockwave for magical spawns), UI Pop (punch + squash for UI interactions).",
+      desc: "Select a preset combination: Hit Impact (punch + jitter + bend for melee hits), Heavy Slam (shockwave + squash + ripple for large impacts), Sword Trail (impact trail + twist for slashing arcs), Wind Gust (directional bend + wave for environmental forces), Electric Stun (jitter + wobble + ripple for shock effects), Portal Spawn (twist + ripple + shockwave for magical spawns), UI Pop (punch + squash for UI interactions), Explosion Burst (strong shockwave + ripple + jitter), Jelly Bounce (wobble + vertical squash + gentle ripple), Whip Lash (directional bend + trail wave + jitter), Teleport Glitch (twist + jitter + small shockwave).",
       type: "combo",
       initialValue: "hit_impact",
       items: [
@@ -17,6 +17,10 @@ export const config = {
         { electric_stun: "Electric Stun" },
         { portal_spawn: "Portal Spawn" },
         { ui_pop: "UI Pop" },
+        { explosion_burst: "Explosion Burst" },
+        { jelly_bounce: "Jelly Bounce" },
+        { whip_lash: "Whip Lash" },
+        { teleport_glitch: "Teleport Glitch" },
       ],
     },
     {

@@ -1,7 +1,10 @@
+export const expose = false;
+
 export const config = {
+  deprecated: true,
   listName: "Spring to",
   displayText: "Spring to {0} (mode: {1})",
-  description: "Spring to a target value from the current value. Inherits velocity if already animating. Use Angle mode to take the shortest rotational path.",
+  description: "Deprecated. Use 'Spring to' in the Multi Spring category instead.",
   params: [
     { id: "to", name: "To", desc: "Target value.", type: "number", initialValue: "100" },
     {

@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "Reset to value",
   displayText: "Reset spring to {0}",
-  description: "Instantly reset the spring value and clear velocity. Stops any active animation.",
+  description: "Deprecated. Use 'Reset spring' in the Multi Spring category instead.",
   params: [{ id: "value", name: "Value", desc: "Value to reset to.", type: "number", initialValue: "0" }],
 };
 

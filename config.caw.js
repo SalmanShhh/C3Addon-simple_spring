@@ -14,7 +14,7 @@ export const minConstructVersion = undefined;
 export const author = "SalmanShh";
 export const website = "https://www.construct.net";
 export const documentation = "https://www.construct.net";
-export const description = "Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance. now includes Mesh effects!";
+export const description = "Simple numeric spring physics with multiple named springs per behavior instance, plus object-level mesh effects.";
 export const category = ADDON_CATEGORY.GENERAL;
 
 export const hasDomside = false;
@@ -40,6 +40,9 @@ export const files = {
 // categories that are not filled will use the folder name
 export const aceCategories = {
   Core_Spring: "Core Spring",
+  Multi_Spring: "Multi Spring",
+  Colour_Spring: "Colour Spring",
+  Transform_Spring: "Transform Spring",
   Mesh_Setup: "Mesh Setup",
   Mesh_Effects: "Mesh Effects",
   Mesh_State: "Mesh State",

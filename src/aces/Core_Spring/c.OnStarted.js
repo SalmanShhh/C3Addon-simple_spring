@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "On started",
   displayText: "On started",
-  description: "Triggered when the spring begins a new animation.",
+  description: "Deprecated. Use 'On spring started' in the Multi Spring category instead.",
   isTrigger: true,
   params: [],
 };

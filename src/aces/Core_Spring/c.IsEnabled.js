@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "Is enabled",
   displayText: "Is enabled",
-  description: "True if the spring behavior is enabled.",
+  description: "Deprecated. Checks if the entire behavior is enabled. There is no Multi Spring equivalent — use this if you need to check the behavior-level enabled state.",
   isInvertible: true,
   params: [],
 };

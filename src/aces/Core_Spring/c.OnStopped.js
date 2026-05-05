@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "On stopped",
   displayText: "On stopped",
-  description: "Triggered when the spring is manually stopped via Stop or Snap to target.",
+  description: "Deprecated. Use 'On spring stopped' in the Multi Spring category instead.",
   isTrigger: true,
   params: [],
 };

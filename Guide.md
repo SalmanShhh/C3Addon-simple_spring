@@ -1,6 +1,10 @@
 # Simple Spring - Behavior Guide
 
-Simple Spring is a Construct 3 behavior that animates any numeric value with spring physics. Instead of writing lerp loops, timer logic, or animation curves by hand, you attach this behavior to an object, call one action, and get a physically-motivated bounce that settles naturally at its target. A second system - **Mesh Spring** - extends that same physics to every control point of a C3 mesh, letting sprites squash, stretch, punch, wobble, and ripple with a single action call.
+Simple Spring is a Construct 3 behavior that animates any numeric value with spring physics. Instead of writing lerp loops, timer logic, or animation curves by hand, you attach this behavior to an object, call one action, and get a physically-motivated bounce that settles naturally at its target.
+
+**v1.6.0.0** expands the addon significantly: **Multi-Spring** lets you run dozens of named numeric springs on a single instance simultaneously; **Colour Spring** drives object blend colour through RGB, HSL, or HSV spring physics; **Transform Spring** springs position, size, and angle and automatically applies the result to the object each tick. A second system — **Mesh Spring** — deforms a C3 mesh per-vertex, now with 11 built-in effect presets.
+
+> **Upgrading from v1.5?** Jump to [Migrating to v1.6.0.0](#migrating-to-v1600) at the end of this document.
 
 ---
 
@@ -9,20 +13,27 @@ Simple Spring is a Construct 3 behavior that animates any numeric value with spr
 1. [Core Concepts](#1-core-concepts)
 2. [Project Setup](#2-project-setup)
 3. [Behavior Properties](#3-behavior-properties)
-4. [Core Spring](#4-core-spring)
-5. [Always-Spring Mode](#5-always-spring-mode)
-6. [Mesh Spring](#6-mesh-spring)
-7. [Mesh Effects Reference](#7-mesh-effects-reference)
-8. [Actions Reference](#8-actions-reference)
-9. [Conditions Reference](#9-conditions-reference)
-10. [Expressions Reference](#10-expressions-reference)
-11. [Triggers Reference](#11-triggers-reference)
-12. [System Use Cases](#12-system-use-cases)
-13. [Game Use Cases](#13-game-use-cases)
-14. [C3 Debugger](#14-c3-debugger)
-15. [Scripting](#15-scripting)
-16. [Feature Deep-Dives](#16-feature-deep-dives)
-17. [Tips and Common Mistakes](#17-tips-and-common-mistakes)
+4. [Core Spring (Legacy)](#4-core-spring-legacy)
+5. [Multi-Spring](#5-multi-spring)
+6. [Colour Spring](#6-colour-spring)
+7. [Transform Spring](#7-transform-spring)
+8. [Always-Spring Mode](#8-always-spring-mode)
+9. [Mesh Spring](#9-mesh-spring)
+10. [Mesh Effects Reference](#10-mesh-effects-reference)
+11. [Actions Reference](#11-actions-reference)
+12. [Conditions Reference](#12-conditions-reference)
+13. [Expressions Reference](#13-expressions-reference)
+14. [Triggers Reference](#14-triggers-reference)
+15. [Multi-Spring Use Cases](#15-multi-spring-use-cases)
+16. [Colour Spring Use Cases](#16-colour-spring-use-cases)
+17. [Transform Spring Use Cases](#17-transform-spring-use-cases)
+18. [System Use Cases](#18-system-use-cases)
+19. [Game Use Cases](#19-game-use-cases)
+20. [C3 Debugger](#20-c3-debugger)
+21. [Scripting](#21-scripting)
+22. [Feature Deep-Dives](#22-feature-deep-dives)
+23. [Tips and Common Mistakes](#23-tips-and-common-mistakes)
+24. [Migrating to v1.6.0.0](#migrating-to-v1600)
 
 ---
 
@@ -32,9 +43,20 @@ Simple Spring is a Construct 3 behavior that animates any numeric value with spr
 
 Animating a number in Construct 3 normally means either keyframing a tween (which requires knowing the duration up front) or writing custom lerp logic every tick (which requires managing delta time, settling thresholds, and state flags yourself). Spring physics solves all of this in one idea: the value accelerates toward the target and decelerates as it gets close, naturally overshooting and oscillating before settling. The motion feels alive because it is physically motivated, not hand-timed.
 
+### What's new in v1.6.0.0
+
+| Feature | What it does |
+|---|---|
+| **Multi-Spring** | Run any number of independently named numeric springs on one instance. Each spring has its own value, velocity, stiffness, damping, and lifecycle events. |
+| **Colour Spring** | Spring a blend colour through RGB, HSL, or HSV colour space. Automatically applies the sprung colour to the object's blend colour each tick. |
+| **Transform Spring** | Spring position (X/Y), size (width/height), and angle. Automatically applies the sprung transform to the object each tick. |
+| **Mesh presets expanded** | Four new mesh preset combos: Explosion Burst, Jelly Bounce, Whip Lash, and Teleport Glitch (11 presets total). |
+| **Core Spring deprecated** | Original single-spring ACEs still work but are hidden from new picks. Use Multi-Spring equivalents for new projects. |
+
 ### Key design decisions
 
-- **One behavior, one number.** Each instance of the behavior owns exactly one animated value. To animate multiple properties simultaneously (X position and rotation, for example), add the behavior twice and give each a descriptive name in the C3 properties panel.
+- **One behavior, many springs.** From v1.6.0.0, a single behavior instance hosts a Map of named springs. You no longer need to add the behavior twice for X/Y animation — you create a spring named `"x"` and another named `"y"` within one behavior.
+- **Colour and Transform springs are self-contained.** They read the object's current property for the start value, spring it, and apply the result automatically every tick. No "Set X every tick" event needed.
 - **Fixed 60 fps physics, frame-rate independent display.** The spring simulation runs at a constant 60 physics steps per second regardless of actual frame rate. Between physics steps the displayed value is smoothly interpolated, so the output looks fluid even at 30 fps or under load.
 - **Velocity inheritance.** If you redirect a spring mid-flight (e.g., the player changes direction), the existing velocity carries over. You never get a jarring snap on target change.
 - **Mesh spring is opt-in.** Mesh deformation requires calling `Create Grid` first. Objects without mesh support (non-world objects, Tilemaps, certain effects) fire `On Mesh Unsupported` and leave the sprite untouched.
@@ -43,11 +65,12 @@ Animating a number in Construct 3 normally means either keyframing a tween (whic
 
 | Term | Meaning |
 |---|---|
-| **Value** | The number the spring is currently animating. Drive any property (X, angle, scale, opacity, etc.) from this each tick. |
+| **Value** | The number the spring is currently animating. For Multi-Spring, read it with `SpringValue("id")`. |
+| **Spring ID** | A string identifying a named spring within an instance. E.g. `"health"`, `"opacity"`, `"x"`. |
 | **Stiffness** | How hard the spring pulls toward the target. Higher = snappier, lower = floatier. |
 | **Damping** | How quickly oscillation dies out. Near 1.0 = almost no overshoot; near 0 = bounces forever. |
 | **Precision** | How close value and velocity must both be before the spring declares itself settled. |
-| **Always Spring** | A mode where the spring permanently tracks a moving target every tick instead of firing once. |
+| **Always Spring** | A mode where a Multi-Spring continuously tracks a moving target every tick. |
 | **Mesh Spring** | A per-vertex spring system that deforms a C3 mesh grid and springs it back to rest. |
 
 ### Scenarios where this addon excels
@@ -66,31 +89,32 @@ Animating a number in Construct 3 normally means either keyframing a tween (whic
 
 ### Step 1 - Add the behavior
 
-Open any object's property panel → **Behaviors** → **+** → search "Simple Spring" → click Add. You can add it multiple times; each instance is independent. Rename each one in the properties panel to keep your event sheet readable (e.g., "SpringX", "SpringAngle", "SpringScale").
+Open any object's property panel → **Behaviors** → **+** → search "Simple Spring" → click Add. You only need **one instance** of the behavior per object in most cases. Multi-Spring lets you run as many named springs as you need from that single behavior instance.
 
 ### Step 2 - Set initial properties
 
-In the properties panel configure **Stiffness**, **Damping**, and **Precision** for the feel you want. The defaults (stiffness `0.15`, damping `0.8`, precision `0.01`) give a medium-speed snap with slight overshoot - a good starting point for UI.
+In the properties panel configure **Stiffness**, **Damping**, and **Precision** for the feel you want. The defaults (stiffness `0.15`, damping `0.8`, precision `0.01`) give a medium-speed snap with slight overshoot — a good starting point for UI. Named springs inherit these values unless you override them per-spring with **Set Spring Settings**.
 
-### Step 3 - Drive a property every tick
+### Step 3 - Choose your approach
 
-The behavior does not automatically set any property. You apply the `Value` expression yourself each tick:
+| Goal | Category to use |
+|---|---|
+| Animate one or more numeric values (opacity, score, X/Y, etc.) | **Multi-Spring** with descriptive IDs |
+| Animate the object's blend colour | **Colour Spring** |
+| Animate the object's position, size, or angle | **Transform Spring** |
+| Deform the object's mesh | **Mesh Spring** |
+
+### Step 4 - Drive a property (Multi-Spring)
+
+For Multi-Spring, you read the value yourself each tick:
 
 ```
 Event: Every tick
-  Action: Player -> Set X to Player.behaviors.SpringX.Value
-  Action: Player -> Set Y to Player.behaviors.SpringY.Value
+  Action: Player -> Set X to Player.behaviors.Spring.SpringValue("x")
+  Action: Player -> Set Y to Player.behaviors.Spring.SpringValue("y")
 ```
 
-### Step 4 - Trigger a spring on an event
-
-```
-Event: Player -> On collision with Wall
-  Action: Player.behaviors.SpringX -> Spring to  [target: 0]  [mode: Value]
-  Action: Player.behaviors.SpringY -> Spring to  [target: 0]  [mode: Value]
-```
-
-That is a working spring setup. The value moves toward `0`, overshoots, and settles.
+Colour Spring and Transform Spring with **Use For Instance: Yes** apply automatically — no "every tick" event needed.
 
 ---
 
@@ -107,9 +131,11 @@ These are set per-instance in the Construct 3 properties panel and become the ru
 
 ---
 
-## 4. Core Spring
+## 4. Core Spring (Legacy)
 
-The core spring animates a single number from a start value to a target. Call one action, then read `Value` every tick to apply it.
+> **These ACEs are deprecated in v1.6.0.0.** They are hidden from the action/condition/expression pickers when adding new events but remain fully functional for existing projects. Each deprecated ACE description names its Multi-Spring replacement. See [Migrating to v1.6.0.0](#migrating-to-v1600).
+
+The original Core Spring drove a single anonymous numeric value. It is replaced by **Multi-Spring** with the spring ID `"default"` (or any ID you choose). All legacy behavior — value, velocity, stiffness, damping, always-spring, triggers — is replicated 1:1 in Multi-Spring.
 
 ### Spring To
 
@@ -177,49 +203,272 @@ Event: On layout start
 
 ---
 
-## 5. Always-Spring Mode
+## 5. Multi-Spring
 
-**Always Spring** keeps the spring awake permanently, continuously chasing a target that you update whenever it changes. This is ideal for smooth camera follow, cursor tracking, and any case where the destination is a live value rather than a fixed number.
+Multi-Spring lets you run any number of independently named numeric springs on a single behavior instance. Each spring is identified by a **string ID** you choose. Springs are created automatically when you first call **Spring Named** with a new ID.
+
+### Spring Named
+
+The primary action. Specify the spring ID, the target value, and whether to spring from the current value or from an explicit start.
+
+```
+Event: Button -> On clicked
+  Action: FadeOverlay.behaviors.Spring -> Spring Named
+      [id: "opacity"]  [target: 255]
+      [start mode: Current Value]  [spring mode: Value]
+
+Event: Every tick
+  Action: FadeOverlay -> Set Opacity to FadeOverlay.behaviors.Spring.SpringValue("opacity")
+```
+
+**Start Mode** options:
+- **Current Value** — inherits whatever value and velocity the spring already has (same as legacy Spring To).
+- **From Value** — sets the spring to an explicit starting value before springing (same as legacy Spring From/To).
+
+**Spring Mode** options:
+- **Value** — standard numeric spring.
+- **Angle** — handles 360° wrapping, always takes the shortest rotational path.
+
+### Multiple springs on one object
+
+```
+Event: Player -> On dash start
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "lean"]  [target: 20]  [start mode: Current Value]  [spring mode: Angle]
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "stretch"]  [target: 1.3]  [start mode: Current Value]  [spring mode: Value]
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "trail_alpha"]  [target: 200]  [start mode: Current Value]  [spring mode: Value]
+
+Event: Every tick
+  Action: Player -> Set Angle to Player.behaviors.Spring.SpringValue("lean")
+  Action: Player -> Set ScaleX to Player.behaviors.Spring.SpringValue("stretch")
+  Action: TrailFX -> Set Opacity to Player.behaviors.Spring.SpringValue("trail_alpha")
+```
+
+### Reading spring values
+
+| Expression | Usage |
+|---|---|
+| `SpringValue("id")` | Current interpolated value of the named spring. |
+| `SpringVelocity("id")` | Current velocity. |
+| `SpringFrom("id")` | Start value of the current or last animation. |
+| `SpringTo("id")` | Target of the current animation. |
+| `SpringProgress("id")` | 0–1 progress. `0` = at start, `1` = at target. |
+| `SpringProperty("id", "stiffness")` | Read stiffness, damping, or precision of a specific spring. |
+| `SpringCount` | Number of springs currently active on this instance. |
+| `SpringIdAt(index)` | The ID of the spring at a given index. |
+
+### Per-spring settings
+
+```
+Event: On start of layout
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "camera_x"]  [stiffness: 0.08]  [damping: 0.85]  [precision: 0.5]
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "score"]  [stiffness: 0.3]  [damping: 0.9]  [precision: 0.01]
+```
+
+### Configure Always Spring
+
+Keep a spring continuously chasing a live target:
+
+```
+Event: On start of layout
+  Action: CameraHelper.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Enable]  [target: Player.X]  [mode: Value]
+
+Event: Every tick
+  Action: CameraHelper.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Update target only]  [target: Player.X]  [mode: Value]
+```
+
+### Spring lifecycle actions
+
+| Action | Description |
+|---|---|
+| **Reset Spring** | Teleport to a value and clear velocity. Does not fire triggers. |
+| **Stop Spring** | Freeze at current value. Fires `On Spring Stopped`. |
+| **Snap Spring to Target** | Teleport to target, clear velocity. Fires `On Spring Stopped`. |
+| **Remove Spring** | Delete the spring from the Map entirely. |
+| **Set Spring Velocity** | Overwrite velocity directly. |
+| **Add to Spring Velocity** | Add an impulse to the current velocity. |
+
+### Spring event triggers
+
+Read which spring fired with `SpringEventId("last_triggered")` or `SpringEventId("last_completed")`:
+
+```
+Event: Enemy.behaviors.Spring -> On Spring Reached Target
+  Condition: Enemy.behaviors.Spring.SpringEventId("last_completed") = "health_bar"
+  Action: Audio -> Play "health_settled"
+```
+
+---
+
+## 6. Colour Spring
+
+Colour Spring drives an object's blend colour with spring physics. Specify a target colour in RGB, HSL, or HSV, and the spring interpolates through the chosen colour space and automatically sets the object's blend colour each tick. No "Set Blend Colour every tick" event is required.
+
+Only **one colour spring can apply to an object at a time**. Starting a new colour spring with a different ID automatically becomes the active one.
+
+### Spring Colour (combined action)
+
+```
+Event: Player -> On take damage
+  Action: Player.behaviors.Spring -> Spring Colour
+      [id: "damage_flash"]
+      [start mode: Current Colour]
+      [colour space: RGB]
+      [to R: 255]  [to G: 50]  [to B: 50]
+      [use for instance: Yes]
+```
+
+**Start Mode** options:
+- **Current Colour** — reads the object's current blend colour as the start.
+- **From Colour** — specify explicit starting channel values.
+
+**Colour Space** options:
+- **RGB** — interpolates red, green, blue channels directly.
+- **HSL** — interpolates through hue, saturation, lightness. Better for hue-shift effects (e.g. blue → red goes through purple).
+- **HSV** — interpolates through hue, saturation, value. Preserves colour vibrancy during transitions.
+
+**Use For Instance** — when `Yes`, applies the sprung colour to the object's blend colour each tick automatically.
+
+### Reading colour values
+
+```
+Event: Every tick  // when Use For Instance is No
+  Action: MyObj -> Set Blend Colour to
+      rgb(MyObj.behaviors.Spring.ColourRed("my_colour"),
+          MyObj.behaviors.Spring.ColourGreen("my_colour"),
+          MyObj.behaviors.Spring.ColourBlue("my_colour"))
+```
+
+| Expression | Returns |
+|---|---|
+| `ColourRed("id")` | Current red channel (0–255). |
+| `ColourGreen("id")` | Current green channel (0–255). |
+| `ColourBlue("id")` | Current blue channel (0–255). |
+| `ColourHex("id")` | Current colour as a hex string (e.g. `"#ff3232"`). |
+
+### Other Colour Spring actions
+
+| Action | Description |
+|---|---|
+| **Set Colour Spring Settings** | Override stiffness, damping, precision for a specific colour spring ID. |
+| **Stop Colour Spring** | Freeze the colour spring at its current channels. |
+| **Reset Colour Spring** | Teleport the colour channels to a value, clear velocity. |
+| **Apply Sprung Colour to Object** | Manually apply the current spring colour (when Use For Instance is No). |
+
+---
+
+## 7. Transform Spring
+
+Transform Spring drives an object's **position**, **size**, or **angle** with spring physics, automatically applying the result to the object each tick. Only one spring of each transform type (position / size / angle) can apply to an object at a time.
+
+### Spring Transform XY (position or size)
+
+```
+Event: Enemy -> On death
+  Action: Enemy.behaviors.Spring -> Spring Transform XY
+      [id: "death_shrink"]
+      [transform type: Size]
+      [start mode: Current Size]
+      [to width: 0]  [to height: 0]
+      [use for instance: Yes]
+```
+
+**Transform Type**: Position or Size.
+**Start Mode**: Current (reads object's current value) or From (explicit starting values).
+
+### Spring Transform Angle
+
+```
+Event: Player -> On land
+  Action: Player.behaviors.Spring -> Spring Transform Angle
+      [id: "tilt"]
+      [angle mode: Angle]
+      [start mode: Current Angle]
+      [to angle: 0]
+      [use for instance: Yes]
+```
+
+**Angle Mode**: Value (numeric, can exceed 360°) or Angle (shortest-path wrapping).
+
+### Reading transform values (when Use For Instance is No)
+
+| Expression | Returns |
+|---|---|
+| `TransformX("id")` | Sprung X position. |
+| `TransformY("id")` | Sprung Y position. |
+| `TransformWidth("id")` | Sprung width. |
+| `TransformHeight("id")` | Sprung height. |
+| `TransformAngle("id")` | Sprung angle. |
+
+### Other Transform Spring actions
+
+| Action | Description |
+|---|---|
+| **Set Transform Spring Settings** | Override stiffness, damping, precision for a specific transform spring ID. |
+| **Stop Transform Spring** | Freeze the transform spring at its current values. |
+
+---
+
+## 8. Always-Spring Mode
+
+**Always Spring** keeps a Multi-Spring awake permanently, continuously chasing a live target. This is ideal for smooth camera follow, cursor tracking, and any case where the destination changes every tick.
+
+> Colour Spring and Transform Spring do not have a dedicated Always Spring mode. For continuously updating targets, simply call the Spring Colour or Spring Transform XY action again each tick with the new target — it updates without resetting the spring.
 
 ### Enable it
 
 ```
 Event: On start of layout
-  Action: Camera.behaviors.SpringX -> Set always spring  [enabled: Enabled]  [target: Player.X]  [mode: Value]
-  Action: Camera.behaviors.SpringY -> Set always spring  [enabled: Enabled]  [target: Player.Y]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Enable]  [target: Player.X]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_y"]  [operation: Enable]  [target: Player.Y]  [mode: Value]
 ```
 
 ### Update the target each tick
 
-In always-spring mode the spring only re-wakes when the target changes. Use `Set always spring target` to push a new destination without altering stiffness, damping, or mode.
+Use **Configure Always Spring** with `operation: Update target only` to push a new destination each tick without changing stiffness, damping, or mode.
 
 ```
 Event: Every tick
-  Action: Camera.behaviors.SpringX -> Set always spring target  [target: Player.X]
-  Action: Camera.behaviors.SpringY -> Set always spring target  [target: Player.Y]
-  Action: ScrollTo -> Scroll to  Camera.behaviors.SpringX.Value,  Camera.behaviors.SpringY.Value
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Update target only]  [target: Player.X]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_y"]  [operation: Update target only]  [target: Player.Y]  [mode: Value]
+  Action: ScrollTo -> Scroll to
+      World.behaviors.Spring.SpringValue("cam_x"),
+      World.behaviors.Spring.SpringValue("cam_y")
 ```
 
 ### Angle always-spring
 
-Set mode to `Angle` to have the spring track a rotating target by taking the shortest path on every update.
+Set mode to `Angle` to track a rotating target taking the shortest path on every update.
 
 ```
 Event: Every tick
-  Action: Turret.behaviors.SpringAngle -> Set always spring target  [target: angle(Turret.X, Turret.Y, Player.X, Player.Y)]
-  Action: Turret -> Set Angle to Turret.behaviors.SpringAngle.Value
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "turret_aim"]  [operation: Update target only]
+      [target: angle(Turret.X, Turret.Y, Player.X, Player.Y)]  [mode: Angle]
+  Action: Turret -> Set Angle to World.behaviors.Spring.SpringValue("turret_aim")
 ```
 
 ### Enable/disable at runtime
 
 ```
 Event: Player -> On death
-  Action: Camera.behaviors.SpringX -> Set always spring  [enabled: Disabled]  [target: 0]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Disable]  [target: 0]  [mode: Value]
 ```
 
 ---
 
-## 6. Mesh Spring
+## 9. Mesh Spring
 
 Mesh Spring deforms a C3 mesh grid using the same spring physics as the core system. Every vertex in the grid can hold offset and velocity independently. When you fire an effect action (Punch, Wobble, Squash/Stretch, Ripple), it injects velocity into the affected vertices. Those vertices spring back to zero over time.
 
@@ -284,7 +533,7 @@ Event: Hero -> On destroyed
 
 ---
 
-## 7. Mesh Effects Reference
+## 10. Mesh Effects Reference
 
 All mesh effects inject velocity - they do not directly set positions. The spring simulation then resolves the motion over subsequent ticks.
 
@@ -578,25 +827,54 @@ Result: Constant sway animates the flag continuously. When the wind gust Wave ac
 
 ---
 
-## 8. Actions Reference
+## 11. Actions Reference
 
-### Core Spring
+### Multi-Spring
 
 | Action | Description |
 |---|---|
-| **Spring to** | Springs from the current value to a target. Inherits any existing velocity. Use Angle mode for rotation values. |
-| **Spring from/to** | Springs from an explicit start value to a target. Resets velocity if not already animating. |
-| **Set always spring** | Enables or disables always-spring mode, setting the permanent target and mode (Value or Angle). |
-| **Set always spring target** | Updates the always-spring destination without changing any other settings. |
-| **Set enabled** | Enables or disables the entire behavior. Disabled behavior stops ticking and does not update the value. |
-| **Set stiffness** | Changes pull-toward-target force. Higher values are snappier. No upper limit; values above 1 cause fast oscillation. |
-| **Set damping** | Changes how fast velocity decays. Must be 0–1. Values near 1 produce near-zero overshoot. |
-| **Set precision** | Changes the settling threshold. Lower values mean the spring settles more completely before stopping. |
-| **Stop at current value** | Freezes the spring at whatever value it currently has. Fires `On Stopped`. |
-| **Snap to target** | Instantly teleports to the target and clears all velocity. Fires `On Stopped`. |
-| **Set velocity** | Overwrites the spring's current velocity to the given value. Wakes the spring. |
-| **Add to velocity** | Adds to the spring's current velocity. Wakes the spring. Useful for impulses. |
-| **Reset spring to** | Instantly places the value at a given number and clears all motion. Does not fire any trigger. |
+| **Spring Named** | Spring to a target by ID. Start mode: Current Value or From Value. Spring mode: Value or Angle. |
+| **Configure Always Spring** | Enable, Disable, or Update target only for an always-spring by ID. |
+| **Set Spring Settings** | Override stiffness, damping, precision for a named spring. |
+| **Set Spring Velocity** | Overwrite velocity of a named spring. |
+| **Add to Spring Velocity** | Add an impulse to a named spring's velocity. |
+| **Reset Spring** | Teleport to a value and clear velocity. Does not fire triggers. |
+| **Stop Spring** | Freeze at current value. Fires `On Spring Stopped`. |
+| **Snap Spring to Target** | Teleport to target, clear velocity. Fires `On Spring Stopped`. |
+| **Remove Spring** | Delete the spring from the Map entirely. |
+
+### Colour Spring
+
+| Action | Description |
+|---|---|
+| **Spring Colour** | Spring to a target colour by ID. Modes: RGB/HSL/HSV. Use For Instance auto-applies each tick. |
+| **Set Colour Spring Settings** | Override stiffness, damping, precision for a colour spring. |
+| **Stop Colour Spring** | Freeze colour spring at current channels. |
+| **Reset Colour Spring** | Teleport colour to a value, clear velocity. |
+| **Apply Sprung Colour to Object** | Manually apply the sprung colour (when Use For Instance is No). |
+
+### Transform Spring
+
+| Action | Description |
+|---|---|
+| **Spring Transform XY** | Spring position or size (width/height) to a target. Use For Instance auto-applies each tick. |
+| **Spring Transform Angle** | Spring angle to a target. Angle mode or Value mode. Use For Instance auto-applies each tick. |
+| **Set Transform Spring Settings** | Override stiffness, damping, precision for a transform spring. |
+| **Stop Transform Spring** | Freeze transform spring at current values. |
+
+### Core Spring (Legacy — deprecated)
+
+| Action | Description |
+|---|---|
+| **Spring to** | Springs from the current value to a target. Use `Spring Named` instead. |
+| **Spring from/to** | Springs from an explicit start value to a target. Use `Spring Named` with From Value mode instead. |
+| **Set always spring** | Enables or disables always-spring mode. Use `Configure Always Spring` instead. |
+| **Set always spring target** | Updates the always-spring destination. Use `Configure Always Spring` (Update target only) instead. |
+| **Set stiffness / damping / precision** | Changes behavior-level spring parameters. Use `Set Spring Settings` instead. |
+| **Stop at current value** | Freezes the spring. Use `Stop Spring` instead. |
+| **Snap to target** | Teleports to the target. Use `Snap Spring to Target` instead. |
+| **Set velocity / Add to velocity** | Velocity injection. Use `Set Spring Velocity` / `Add to Spring Velocity` instead. |
+| **Reset spring to** | Resets to a value. Use `Reset Spring` instead. |
 
 ### Mesh Setup
 
@@ -605,65 +883,121 @@ Result: Constant sway animates the flag continuously. When the wind gust Wave ac
 | **Create mesh grid** | Creates a mesh on the instance and initializes all spring points. Minimum 2×2. Replaces any existing mesh. |
 | **Destroy grid** | Removes the mesh from the instance and clears all spring state. |
 | **Set mesh enabled** | Pause or resume mesh spring updates without destroying the grid. |
-| **Set mesh stiffness** | Spring pull strength for the mesh simulation. Independent from the core spring stiffness. |
-| **Set mesh damping** | Velocity decay for mesh vertices. Independent from the core spring damping. |
+| **Set mesh stiffness** | Spring pull strength for the mesh simulation. Independent from other spring stiffness. |
+| **Set mesh damping** | Velocity decay for mesh vertices. |
 | **Set mesh precision** | Settling threshold for mesh vertices. |
-| **Reset offsets** | Springs all mesh vertices back to zero offset immediately (zeroes velocity too). Stops mesh animation. |
+| **Reset offsets** | Zeroes all vertex offsets and velocities. Stops mesh animation. |
 
 ### Mesh Effects
 
-All mesh effect actions include an **Auto Mesh** parameter (default `Yes`). When set to `Yes`, a mesh is automatically created using the current auto mesh resolution (default 5×5) if none exists - no manual setup required. Set to `No` when managing the mesh yourself for a custom resolution. Use **Set auto mesh resolution** before your first effect call to control the density of the auto-created mesh.
+All mesh effect actions include an **Auto Mesh** parameter (default `Yes`). When set to `Yes`, a mesh is automatically created using the current auto mesh resolution (default 5×5) if none exists.
 
 | Action | Description |
 |---|---|
-| **Squash and stretch** | Applies a classic squash/stretch impulse around a normalized center with a given radius. |
-| **Punch** | Pushes vertices outward from a point with linear, smooth, or exponential falloff. |
-| **Wobble** | Applies a directional shear impulse - one side of the sprite pushes one way, the opposite side the other. |
-| **Ripple** | Creates concentric wave rings of alternating push/pull from an origin point. |
-| **Shockwave** | Ring-shaped outward blast - center unaffected, only the ring band is displaced. |
-| **Twist** | Swirls the mesh in a rotational motion around a pivot, then springs back. |
-| **Wave** | Pushes parallel bands of vertices in alternating directions, like a flag in wind. |
-| **Directional bend** | Bends the mesh toward a direction with stronger leading-side displacement for lean/recoil feel. |
-| **Noise jitter burst** | Randomized per-vertex burst useful for electric shock, glitch tremor, and impact rattle. |
-| **Impact trail wave** | Directional banded trail wave for slash arcs, dash wakes, and projectile pressure trails. |
-| **Start constant sway** | Begins continuous sinusoidal sway (grass, plants, cloth, flags). Specify angle, strength, wavelength, and speed. Runs automatically each tick until stopped. |
-| **Stop constant sway** | Stops sway and lets vertices spring back to rest naturally. Fires `On Mesh Settled` when done. |
-| **Set auto mesh resolution** | Sets the columns and rows used when Auto Mesh = Yes auto-creates a mesh. Default 5×5. Use 8×8 or higher for smoother deformation on large sprites. |
-| **Mesh preset combo** | Applies a pre-configured blend of 2–4 mesh effects tuned for specific game-feel scenarios (Hit Impact, Heavy Slam, Sword Trail, Wind Gust, Electric Stun, Portal Spawn, UI Pop). Intensity scales all effect strengths. |
+| **Squash and stretch** | Classic squash/stretch impulse around a normalized center. |
+| **Punch** | Outward burst from a point with linear, smooth, or exponential falloff. |
+| **Wobble** | Directional shear impulse — one side pushes one way, the opposite side the other. |
+| **Ripple** | Concentric wave rings of alternating push/pull from an origin. |
+| **Shockwave** | Ring-shaped outward blast; center unaffected. |
+| **Twist** | Rotational swirl around a pivot, then springs back. |
+| **Wave** | Parallel alternating bands (flag in wind). |
+| **Directional bend** | Leading-side lean/recoil. |
+| **Noise jitter burst** | Randomized per-vertex burst. |
+| **Impact trail wave** | Directional banded trail for slash arcs, dash wakes. |
+| **Start constant sway** | Begins continuous sinusoidal sway. Runs automatically until stopped. |
+| **Stop constant sway** | Stops sway; vertices spring back to rest. |
+| **Set auto mesh resolution** | Columns × rows used when Auto Mesh = Yes auto-creates a mesh. Default 5×5. |
+| **Mesh preset combo** | Pre-configured blend of 2–4 effects. 11 presets. Intensity scales all effect strengths. |
 
 ---
 
-## 9. Conditions Reference
+## 12. Conditions Reference
+
+### Multi-Spring
 
 | Condition | Description |
 |---|---|
-| **Is animating** | True while the core spring is in motion (not yet settled). Invertible. |
-| **Is enabled** | True if the behavior is currently enabled. Invertible. |
-| **Has reached target** | True if the spring has settled at its target (not animating, within precision). Invertible. |
-| **Is always spring enabled** | True if always-spring mode is active. Invertible. |
-| **Mesh is supported** | True if the attached object supports the C3 mesh API. Invertible. |
+| **Is Spring Animating** | True while the named spring is in motion. Invertible. |
+| **Has Spring Reached Target** | True if the named spring has settled. Invertible. |
+| **Is Spring Always Spring Enabled** | True if always-spring mode is active for the named spring. Invertible. |
+| **On Spring Started** | Trigger: fires when a spring begins a new animation. |
+| **On Spring Reached Target** | Trigger: fires when a spring naturally settles. |
+| **On Spring Stopped** | Trigger: fires when a spring is manually stopped. |
+
+### Colour Spring
+
+| Condition | Description |
+|---|---|
+| **Is Colour Spring Animating** | True while any colour channel in the named spring is in motion. Invertible. |
+| **Has Colour Spring Reached Target** | True if the colour spring has settled. Invertible. |
+
+### Transform Spring
+
+| Condition | Description |
+|---|---|
+| **Is Transform Spring Animating** | True while any channel (x, y, w, h, or angle) is in motion. Invertible. |
+| **Has Transform Spring Reached Target** | True if all channels have settled. Invertible. |
+
+### Mesh Spring
+
+| Condition | Description |
+|---|---|
+| **Mesh is supported** | True if the object supports the C3 mesh API. Invertible. |
 | **Is mesh enabled** | True if the mesh is enabled and ticking. Invertible. |
 | **Is mesh animating** | True while any mesh vertex is still in motion. Invertible. |
 | **Has mesh settled** | True when mesh animation has stopped and total energy is below precision. Invertible. |
-| **Is mesh sway enabled** | True while constant sway is running. Use to check before starting sway again or to branch on sway state. Invertible. |
+| **Is mesh sway enabled** | True while constant sway is running. Invertible. |
 
 ---
 
-## 10. Expressions Reference
+## 13. Expressions Reference
 
-### Core Spring
+### Multi-Spring
 
 | Expression | Returns | Description |
 |---|---|---|
-| `Value` | Number | Current interpolated spring value. This is the number to drive your properties with. |
-| `Progress` | Number (0–1) | How far along the animation is. `0` = at start, `1` = at target. |
-| `From` | Number | The start value of the current or last animation. |
-| `To` | Number | The target value of the current or last animation. |
-| `Velocity` | Number | Current velocity of the spring physics simulation. |
-| `Stiffness` | Number | Current stiffness setting. |
-| `Damping` | Number | Current damping setting. |
-| `Precision` | Number | Current precision setting. |
-| `AlwaysSpringTarget` | Number | The current always-spring target value. |
+| `SpringValue("id")` | Number | Current interpolated value of the named spring. |
+| `SpringVelocity("id")` | Number | Current velocity. |
+| `SpringFrom("id")` | Number | Start value of the current or last animation. |
+| `SpringTo("id")` | Number | Current target value. |
+| `SpringProgress("id")` | Number (0–1) | Animation progress. `0` = at start, `1` = at target. |
+| `SpringProperty("id", "stiffness")` | Number | Read stiffness, damping, or precision for the named spring. |
+| `SpringEventId("last_triggered")` | String | ID of the spring that last fired `On Spring Started`. |
+| `SpringEventId("last_completed")` | String | ID of the spring that last fired `On Spring Reached Target`. |
+| `SpringCount` | Number | Total number of active springs on this instance. |
+| `SpringIdAt(index)` | String | Spring ID at the given index. |
+
+### Colour Spring
+
+| Expression | Returns | Description |
+|---|---|---|
+| `ColourRed("id")` | Number | Current red channel (0–255). |
+| `ColourGreen("id")` | Number | Current green channel (0–255). |
+| `ColourBlue("id")` | Number | Current blue channel (0–255). |
+| `ColourHex("id")` | String | Current colour as a hex string (e.g. `"#ff3232"`). |
+
+### Transform Spring
+
+| Expression | Returns | Description |
+|---|---|---|
+| `TransformX("id")` | Number | Current sprung X position. |
+| `TransformY("id")` | Number | Current sprung Y position. |
+| `TransformWidth("id")` | Number | Current sprung width. |
+| `TransformHeight("id")` | Number | Current sprung height. |
+| `TransformAngle("id")` | Number | Current sprung angle. |
+
+### Core Spring (Legacy — deprecated)
+
+| Expression | Returns | Description |
+|---|---|---|
+| `Value` | Number | Current interpolated spring value. Use `SpringValue("default")` instead. |
+| `Progress` | Number (0–1) | Animation progress. Use `SpringProgress("default")` instead. |
+| `From` | Number | Start value. Use `SpringFrom("default")` instead. |
+| `To` | Number | Target value. Use `SpringTo("default")` instead. |
+| `Velocity` | Number | Current velocity. Use `SpringVelocity("default")` instead. |
+| `Stiffness` | Number | Current stiffness. Use `SpringProperty("default", "stiffness")` instead. |
+| `Damping` | Number | Current damping. Use `SpringProperty("default", "damping")` instead. |
+| `Precision` | Number | Current precision. Use `SpringProperty("default", "precision")` instead. |
 
 ### Mesh State
 
@@ -678,15 +1012,15 @@ All mesh effect actions include an **Auto Mesh** parameter (default `Yes`). When
 
 ---
 
-## 11. Triggers Reference
+## 14. Triggers Reference
 
-### Core Spring Triggers
+### Multi-Spring Triggers
 
 | Trigger | Fires When |
 |---|---|
-| **On started** | The spring begins a new animation (either SpringTo or SpringFromTo is called on a settled spring). |
-| **On reached target** | The spring naturally settles at its target through physics. |
-| **On stopped** | The spring is manually interrupted via **Stop at current value** or **Snap to target**. |
+| **On Spring Started** | A named spring begins a new animation. Read the ID with `SpringEventId("last_triggered")`. |
+| **On Spring Reached Target** | A named spring naturally settles at its target. Read with `SpringEventId("last_completed")`. |
+| **On Spring Stopped** | A named spring is manually stopped or snapped. |
 
 ### Mesh Spring Triggers
 
@@ -698,116 +1032,648 @@ All mesh effect actions include an **Auto Mesh** parameter (default `Yes`). When
 
 ---
 
-## 12. System Use Cases
+## 15. Multi-Spring Use Cases
 
-### Core Spring System
+Multi-Spring is the workhorse for animating any numeric value — or multiple numeric values on the same object simultaneously.
 
-*Animating a numeric value with physics-motivated motion.*
+### Use Case 1: Animating multiple independent values on one object
+
+One behavior instance handles X, Y, and alpha simultaneously:
+
+```
+Event: Enemy -> On spawn
+  Action: Enemy.behaviors.Spring -> Spring Named
+      [id: "x"]  [target: SpawnX]
+      [start mode: From Value]  [from: OffscreenX]  [spring mode: Value]
+  Action: Enemy.behaviors.Spring -> Spring Named
+      [id: "y"]  [target: SpawnY]
+      [start mode: From Value]  [from: OffscreenY]  [spring mode: Value]
+  Action: Enemy.behaviors.Spring -> Spring Named
+      [id: "alpha"]  [target: 255]
+      [start mode: From Value]  [from: 0]  [spring mode: Value]
+
+Event: Every tick
+  Action: Enemy -> Set X to Enemy.behaviors.Spring.SpringValue("x")
+  Action: Enemy -> Set Y to Enemy.behaviors.Spring.SpringValue("y")
+  Action: Enemy -> Set Opacity to Enemy.behaviors.Spring.SpringValue("alpha")
+```
+
+### Use Case 2: Score counter with pop-and-settle animation
+
+Spring the displayed score separately from the actual score so it chases the real number with a satisfying bounce:
+
+```
+Event: Player -> On collect coin
+  Action: System -> Add 10 to global "Score"
+  Action: ScoreLabel.behaviors.Spring -> Spring Named
+      [id: "display_score"]  [target: Score]
+      [start mode: Current Value]  [spring mode: Value]
+  Action: ScoreLabel.behaviors.Spring -> Spring Named
+      [id: "scale"]  [target: 1.4]
+      [start mode: Current Value]  [spring mode: Value]
+
+Event: ScoreLabel.behaviors.Spring -> On Spring Reached Target
+  Condition: ScoreLabel.behaviors.Spring.SpringEventId("last_completed") = "scale"
+  Condition: ScoreLabel.behaviors.Spring.SpringValue("scale") > 1.3
+  Action: ScoreLabel.behaviors.Spring -> Spring Named
+      [id: "scale"]  [target: 1.0]
+      [start mode: Current Value]  [spring mode: Value]
+
+Event: Every tick
+  Action: ScoreLabel -> Set Text to int(ScoreLabel.behaviors.Spring.SpringValue("display_score"))
+  Action: ScoreLabel -> Set Scale to ScoreLabel.behaviors.Spring.SpringValue("scale")
+```
+
+### Use Case 3: Camera shake with independent X/Y axes
+
+```
+Event: Explosion -> On created
+  Action: World.behaviors.Spring -> Add to Spring Velocity  [id: "shake_x"]  [value: choose(-20, 20)]
+  Action: World.behaviors.Spring -> Add to Spring Velocity  [id: "shake_y"]  [value: choose(-15, 15)]
+
+Event: Every tick
+  Action: World.behaviors.Spring -> Spring Named
+      [id: "shake_x"]  [target: 0]  [start mode: Current Value]  [spring mode: Value]
+  Action: World.behaviors.Spring -> Spring Named
+      [id: "shake_y"]  [target: 0]  [start mode: Current Value]  [spring mode: Value]
+  Action: Scroll -> ScrollTo
+      Player.X + World.behaviors.Spring.SpringValue("shake_x"),
+      Player.Y + World.behaviors.Spring.SpringValue("shake_y")
+```
+
+### Use Case 4: Reacting to which spring triggered an event
+
+```
+Event: UIHelper.behaviors.Spring -> On Spring Reached Target
+  Local string "which" = UIHelper.behaviors.Spring.SpringEventId("last_completed")
+
+  Sub-event: which = "panel_x"
+    Action: Audio -> Play "panel_settled"
+
+  Sub-event: which = "button_scale"
+    Action: System -> Signal "ButtonReady"
+
+  Sub-event: which = "health_bar"
+    Action: HealParticle -> Set Visible to No
+```
+
+### Use Case 5: Per-spring stiffness for different feel
+
+```
+Event: On start of layout
+  // Floaty camera
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "camera_x"]  [stiffness: 0.07]  [damping: 0.85]  [precision: 0.5]
+
+  // Snappy UI button scale
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "btn_scale"]  [stiffness: 0.28]  [damping: 0.78]  [precision: 0.01]
+
+  // Precise score counter
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "score"]  [stiffness: 0.2]  [damping: 0.92]  [precision: 0.001]
+```
+
+### Use Case 6: Crosshair spread with per-bullet velocity injection
+
+```
+Event: Player -> On fire weapon
+  Action: Player.behaviors.Spring -> Add to Spring Velocity
+      [id: "crosshair_spread"]  [value: 12]
+
+Event: Every tick
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "crosshair_spread"]  [target: BaseSpread]
+      [start mode: Current Value]  [spring mode: Value]
+  Action: CrosshairLeft  -> Set X to Crosshair.X - Player.behaviors.Spring.SpringValue("crosshair_spread")
+  Action: CrosshairRight -> Set X to Crosshair.X + Player.behaviors.Spring.SpringValue("crosshair_spread")
+  Action: CrosshairTop   -> Set Y to Crosshair.Y - Player.behaviors.Spring.SpringValue("crosshair_spread")
+  Action: CrosshairBot   -> Set Y to Crosshair.Y + Player.behaviors.Spring.SpringValue("crosshair_spread")
+```
+
+### Use Case 7: Chained animations using On Spring Reached Target
+
+```
+Event: DialogBox.behaviors.Spring -> On Spring Reached Target
+  Condition: DialogBox.behaviors.Spring.SpringEventId("last_completed") = "slide_in"
+  // Slide complete — now pulse to draw attention
+  Action: DialogBox.behaviors.Spring -> Spring Named
+      [id: "pulse"]  [target: 1.05]
+      [start mode: From Value]  [from: 1.0]  [spring mode: Value]
+
+Event: DialogBox.behaviors.Spring -> On Spring Reached Target
+  Condition: DialogBox.behaviors.Spring.SpringEventId("last_completed") = "pulse"
+  Condition: DialogBox.behaviors.Spring.SpringValue("pulse") > 1.04
+  Action: DialogBox.behaviors.Spring -> Spring Named
+      [id: "pulse"]  [target: 1.0]
+      [start mode: Current Value]  [spring mode: Value]
+```
+
+### Use Case 8: Always-spring camera with zone-based stiffness
+
+```
+Event: On start of layout
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Enable]  [target: Player.X]  [mode: Value]
+
+Event: Player -> On enter "DangerZone" region
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "cam_x"]  [stiffness: 0.18]  [damping: 0.88]  [precision: 0.5]
+
+Event: Player -> On exit "DangerZone" region
+  Action: World.behaviors.Spring -> Set Spring Settings
+      [id: "cam_x"]  [stiffness: 0.07]  [damping: 0.85]  [precision: 0.5]
+
+Event: Every tick
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Update target only]  [target: Player.X]  [mode: Value]
+  Action: Scroll -> ScrollTo  World.behaviors.Spring.SpringValue("cam_x"),  ...
+```
+
+### Use Case 9: Dash animation with lean, stretch, and trail alpha
+
+```
+Event: Player -> On dash start
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "lean"]  [target: 20]  [start mode: Current Value]  [spring mode: Angle]
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "stretch"]  [target: 1.3]  [start mode: Current Value]  [spring mode: Value]
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "trail_alpha"]  [target: 220]  [start mode: Current Value]  [spring mode: Value]
+
+Event: Player -> On dash end
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "lean"]  [target: 0]  [start mode: Current Value]  [spring mode: Angle]
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "stretch"]  [target: 1.0]  [start mode: Current Value]  [spring mode: Value]
+  Action: Player.behaviors.Spring -> Spring Named
+      [id: "trail_alpha"]  [target: 0]  [start mode: Current Value]  [spring mode: Value]
+
+Event: Every tick
+  Action: Player -> Set Angle to Player.behaviors.Spring.SpringValue("lean")
+  Action: Player -> Set ScaleX to Player.behaviors.Spring.SpringValue("stretch")
+  Action: DashTrail -> Set Opacity to Player.behaviors.Spring.SpringValue("trail_alpha")
+```
+
+### Use Case 10: Iterating all active springs for debug display
+
+```
+Event: Every tick  [For "i" from 0 to SpringCount - 1]
+  Action: DebugText -> Set Text to
+      DebugText.Text & newline &
+      "[" & World.behaviors.Spring.SpringIdAt(i) & "]: " &
+      str(round(World.behaviors.Spring.SpringValue(World.behaviors.Spring.SpringIdAt(i))))
+```
+
+---
+
+## 16. Colour Spring Use Cases
+
+Colour Spring is the cleanest way to animate blend colour in Construct 3. It handles colour space interpolation, auto-applying each tick, and conflict resolution automatically.
+
+### Use Case 1: Damage flash (red tint that returns to white)
+
+```
+Event: Player -> On take damage
+  Action: Player.behaviors.Spring -> Spring Colour
+      [id: "damage"]
+      [start mode: From Colour]
+      [from R: 255]  [from G: 80]  [from B: 80]   // start red
+      [colour space: RGB]
+      [to R: 255]  [to G: 255]  [to B: 255]        // settle to white
+      [use for instance: Yes]
+```
+
+### Use Case 2: Health-based colour shift (green → yellow → red) using HSL
+
+```
+Event: Every tick
+  // Map health (0–1) to hue: 0 = red, 120 = green
+  Local number "healthPct" = Player.Health / Player.MaxHealth
+  Action: HealthBar.behaviors.Spring -> Spring Colour
+      [id: "health_colour"]
+      [start mode: Current Colour]
+      [colour space: HSL]
+      [to H: healthPct * 120]  [to S: 100]  [to L: 50]
+      [use for instance: Yes]
+```
+
+At full health the bar is vibrant green; as health drops it sweeps through yellow to red. The spring lag makes the colour trail slightly behind actual health for a satisfying look.
+
+### Use Case 3: Elemental status effects (freeze, burn, poison)
+
+```
+Event: Player -> On apply "Freeze" status
+  Action: Player.behaviors.Spring -> Spring Colour
+      [id: "status"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 100]  [to G: 180]  [to B: 255]
+      [use for instance: Yes]
+
+Event: Player -> On apply "Burn" status
+  Action: Player.behaviors.Spring -> Spring Colour
+      [id: "status"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 255]  [to G: 100]  [to B: 30]
+      [use for instance: Yes]
+
+Event: Player -> On status expired
+  Action: Player.behaviors.Spring -> Spring Colour
+      [id: "status"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 255]  [to G: 255]  [to B: 255]
+      [use for instance: Yes]
+```
+
+Because only one colour spring can apply at a time, switching from Freeze to Burn automatically transitions from blue to orange through the current intermediate colour — no manual "cancel previous tween" needed.
+
+### Use Case 4: Day/night cycle sky colour transition
+
+```
+Event: GameTime changes to "Dusk"
+  Action: SkyBackground.behaviors.Spring -> Set Colour Spring Settings
+      [id: "sky"]  [stiffness: 0.02]  [damping: 0.98]  [precision: 0.1]
+  Action: SkyBackground.behaviors.Spring -> Spring Colour
+      [id: "sky"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 255]  [to G: 160]  [to B: 80]
+      [use for instance: Yes]
+
+Event: GameTime changes to "Night"
+  Action: SkyBackground.behaviors.Spring -> Spring Colour
+      [id: "sky"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 20]  [to G: 20]  [to B: 60]
+      [use for instance: Yes]
+```
+
+Very low stiffness (`0.02`) makes the sky colour transition over many seconds, mimicking a real sunset.
+
+### Use Case 5: HSV colour spring for vibrant animated items
+
+HSV preserves saturation during hue shifts, ideal for collectibles or rarity highlights:
+
+```
+Event: Every 2 seconds
+  Action: RareItem.behaviors.Spring -> Spring Colour
+      [id: "shimmer"]
+      [start mode: Current Colour]  [colour space: HSV]
+      [to H: random(0, 360)]  [to S: 100]  [to V: 100]
+      [use for instance: Yes]
+```
+
+### Use Case 6: Reading colour values to tint multiple objects
+
+```
+Event: Player -> On powered up
+  Action: Player.behaviors.Spring -> Spring Colour
+      [id: "glow"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 255]  [to G: 255]  [to B: 80]
+      [use for instance: No]   // apply manually to multiple objects
+
+Event: Every tick
+  Action: Player -> Set Blend Colour to
+      rgb(Player.behaviors.Spring.ColourRed("glow"),
+          Player.behaviors.Spring.ColourGreen("glow"),
+          Player.behaviors.Spring.ColourBlue("glow"))
+  Action: PlayerAura -> Set Blend Colour to
+      rgb(Player.behaviors.Spring.ColourRed("glow"),
+          Player.behaviors.Spring.ColourGreen("glow"),
+          Player.behaviors.Spring.ColourBlue("glow"))
+```
+
+### Use Case 7: UI button colour feedback on hover and press
+
+```
+Event: Button -> On mouse enter
+  Action: Button.behaviors.Spring -> Spring Colour
+      [id: "tint"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 180]  [to G: 220]  [to B: 255]  // light blue hover
+      [use for instance: Yes]
+
+Event: Button -> On left mouse button pressed
+  Action: Button.behaviors.Spring -> Spring Colour
+      [id: "tint"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 100]  [to G: 160]  [to B: 255]  // deeper blue press
+      [use for instance: Yes]
+
+Event: Button -> On mouse leave
+  Action: Button.behaviors.Spring -> Spring Colour
+      [id: "tint"]
+      [start mode: Current Colour]  [colour space: RGB]
+      [to R: 255]  [to G: 255]  [to B: 255]  // back to white
+      [use for instance: Yes]
+```
+
+### Use Case 8: Boss phase transition colour shift
+
+```
+Event: Boss -> On phase 2 start
+  Action: Boss.behaviors.Spring -> Set Colour Spring Settings
+      [id: "phase"]  [stiffness: 0.08]  [damping: 0.85]  [precision: 0.5]
+  Action: Boss.behaviors.Spring -> Spring Colour
+      [id: "phase"]
+      [start mode: Current Colour]  [colour space: HSL]
+      [to H: 280]  [to S: 100]  [to L: 40]   // deep purple
+      [use for instance: Yes]
+
+Event: Boss -> On phase 3 start (enrage)
+  Action: Boss.behaviors.Spring -> Spring Colour
+      [id: "phase"]
+      [start mode: Current Colour]  [colour space: HSL]
+      [to H: 0]  [to S: 100]  [to L: 45]   // blazing red
+      [use for instance: Yes]
+```
+
+---
+
+## 17. Transform Spring Use Cases
+
+Transform Spring is the zero-boilerplate way to animate an object's position, size, or angle. Enable **Use For Instance: Yes** and the spring applies automatically each tick.
+
+### Use Case 1: UI panel slide in/out
+
+```
+Event: On "OpenMenu" triggered
+  Action: MenuPanel.behaviors.Spring -> Spring Transform XY
+      [id: "slide"]
+      [transform type: Position]
+      [start mode: From]
+      [from X: -500]  [from Y: MenuPanel.Y]
+      [to X: 100]  [to Y: MenuPanel.Y]
+      [use for instance: Yes]
+
+Event: On "CloseMenu" triggered
+  Action: MenuPanel.behaviors.Spring -> Spring Transform XY
+      [id: "slide"]
+      [transform type: Position]
+      [start mode: Current]
+      [to X: -500]  [to Y: MenuPanel.Y]
+      [use for instance: Yes]
+```
+
+No "Set X every tick" event needed — `MenuPanel.X` is automatically updated by the spring.
+
+### Use Case 2: Object scale pop on spawn
+
+```
+Event: Coin -> On created
+  Action: Coin.behaviors.Spring -> Spring Transform XY
+      [id: "spawn_scale"]
+      [transform type: Size]
+      [start mode: From]
+      [from width: 0]  [from height: 0]
+      [to width: 32]  [to height: 32]
+      [use for instance: Yes]
+```
+
+### Use Case 3: Smooth camera follow using Transform Spring
+
+```
+Event: Every tick
+  Action: CameraHelper.behaviors.Spring -> Spring Transform XY
+      [id: "follow"]
+      [transform type: Position]
+      [start mode: Current]
+      [to X: Player.X]  [to Y: Player.Y]
+      [use for instance: Yes]
+  Action: Scroll -> ScrollTo  CameraHelper.X,  CameraHelper.Y
+```
+
+Because Use For Instance is Yes, `CameraHelper.X/.Y` update automatically — the ScrollTo just reads those live positions.
+
+### Use Case 4: Enemy death shrink
+
+```
+Event: Enemy -> On health reaches 0
+  Action: Enemy.behaviors.Spring -> Spring Transform XY
+      [id: "death"]
+      [transform type: Size]
+      [start mode: Current]
+      [to width: 0]  [to height: 0]
+      [use for instance: Yes]
+
+Event: Enemy.behaviors.Spring -> Has Transform Spring Reached Target  [id: "death"]
+  Action: Enemy -> Destroy
+```
+
+### Use Case 5: Rotation spring on hit (tilt and recover)
+
+```
+Event: Projectile -> On collision with Enemy
+  Action: Enemy.behaviors.Spring -> Spring Transform Angle
+      [id: "hit_tilt"]
+      [angle mode: Value]
+      [start mode: From]
+      [from angle: 15]
+      [to angle: 0]
+      [use for instance: Yes]
+```
+
+### Use Case 6: Ability icon size pulse on charge complete
+
+```
+Event: Player -> On ability charged
+  Action: AbilityIcon.behaviors.Spring -> Spring Transform XY
+      [id: "pulse"]
+      [transform type: Size]
+      [start mode: From]
+      [from width: AbilityIcon.Width * 0.8]
+      [from height: AbilityIcon.Height * 0.8]
+      [to width: AbilityIcon.Width * 1.1]
+      [to height: AbilityIcon.Height * 1.1]
+      [use for instance: Yes]
+
+Event: AbilityIcon.behaviors.Spring -> Has Transform Spring Reached Target  [id: "pulse"]
+  Action: AbilityIcon.behaviors.Spring -> Spring Transform XY
+      [id: "pulse"]
+      [transform type: Size]
+      [start mode: Current]
+      [to width: AbilityIcon.Width]
+      [to height: AbilityIcon.Height]
+      [use for instance: Yes]
+```
+
+### Use Case 7: Turret barrel tracking angle
+
+```
+Event: On start of layout
+  Action: Turret.behaviors.Spring -> Set Transform Spring Settings
+      [id: "aim"]  [stiffness: 0.12]  [damping: 0.8]  [precision: 0.5]
+
+Event: Every tick
+  Action: Turret.behaviors.Spring -> Spring Transform Angle
+      [id: "aim"]
+      [angle mode: Angle]
+      [start mode: Current]
+      [to angle: angle(Turret.X, Turret.Y, Player.X, Player.Y)]
+      [use for instance: Yes]
+  // Turret.Angle is automatically set by the spring — no Set Angle needed
+```
+
+### Use Case 8: Notification card fly-in from off-screen
+
+```
+Event: On "ShowNotification" trigger
+  Action: NotifCard.behaviors.Spring -> Spring Transform XY
+      [id: "fly_in"]
+      [transform type: Position]
+      [start mode: From]
+      [from X: LayoutWidth + 300]  [from Y: 80]
+      [to X: LayoutWidth - 340]  [to Y: 80]
+      [use for instance: Yes]
+
+Event: On "HideNotification" trigger
+  Action: NotifCard.behaviors.Spring -> Spring Transform XY
+      [id: "fly_in"]
+      [transform type: Position]
+      [start mode: Current]
+      [to X: LayoutWidth + 300]  [to Y: 80]
+      [use for instance: Yes]
+```
+
+### Use Case 9: Floating platform hover bob
+
+```
+Event: On start of layout
+  Action: System -> Set local "HomeY" to FloatingPlatform.Y
+  Action: FloatingPlatform.behaviors.Spring -> Spring Transform XY
+      [id: "hover"]  [transform type: Position]
+      [start mode: Current]  [to X: FloatingPlatform.X]  [to Y: HomeY - 20]
+      [use for instance: Yes]
+
+Event: FloatingPlatform.behaviors.Spring -> Has Transform Spring Reached Target  [id: "hover"]
+  // Reverse direction
+  Action: FloatingPlatform.behaviors.Spring -> Spring Transform XY
+      [id: "hover"]  [transform type: Position]
+      [start mode: Current]
+      [to X: FloatingPlatform.X]
+      [to Y: FloatingPlatform.Y > HomeY ? HomeY - 20 : HomeY + 20]
+      [use for instance: Yes]
+```
+
+### Use Case 10: Boss slam wind-up (size + angle combined)
+
+```
+Event: Boss -> On slam wind-up
+  Action: Boss.behaviors.Spring -> Spring Transform XY
+      [id: "slam_scale"]
+      [transform type: Size]
+      [start mode: Current]
+      [to width: Boss.Width * 1.3]  [to height: Boss.Height * 0.8]
+      [use for instance: Yes]
+  Action: Boss.behaviors.Spring -> Spring Transform Angle
+      [id: "slam_lean"]
+      [angle mode: Value]
+      [start mode: Current]
+      [to angle: -10]
+      [use for instance: Yes]
+
+Event: Boss -> On slam strike
+  Action: Boss.behaviors.Spring -> Spring Transform XY
+      [id: "slam_scale"]
+      [transform type: Size]
+      [start mode: Current]
+      [to width: Boss.Width]  [to height: Boss.Height]
+      [use for instance: Yes]
+  Action: Boss.behaviors.Spring -> Spring Transform Angle
+      [id: "slam_lean"]
+      [angle mode: Value]
+      [start mode: Current]
+      [to angle: 0]
+      [use for instance: Yes]
+```
+
+---
+
+## 18. System Use Cases
+
+### Multi-Spring System
 
 **Scenario:** A UI panel slides in from off-screen when the player opens the inventory.
 
 ```
 Event: On "Inventory" button pressed
-  Action: InventoryPanel.behaviors.SpringY -> Reset spring to  [value: -400]
-  Action: InventoryPanel.behaviors.SpringY -> Spring to  [target: 200]  [mode: Value]
+  Action: InventoryPanel.behaviors.Spring -> Spring Named
+      [id: "slide_y"]  [target: 200]
+      [start mode: From Value]  [from: -400]  [spring mode: Value]
 
 Event: Every tick
-  Action: InventoryPanel -> Set Y to InventoryPanel.behaviors.SpringY.Value
+  Action: InventoryPanel -> Set Y to InventoryPanel.behaviors.Spring.SpringValue("slide_y")
 ```
 
 **Scenario:** A health bar smoothly animates to a new value whenever the player takes damage.
 
 ```
 Event: Player -> On health changed
-  Action: HealthBar.behaviors.SpringW -> Spring to  [target: (Player.Health / Player.MaxHealth) * 400]  [mode: Value]
+  Action: HealthBar.behaviors.Spring -> Spring Named
+      [id: "width"]
+      [target: (Player.Health / Player.MaxHealth) * 400]
+      [start mode: Current Value]  [spring mode: Value]
 
 Event: Every tick
-  Action: HealthBar -> Set Width to HealthBar.behaviors.SpringW.Value
+  Action: HealthBar -> Set Width to HealthBar.behaviors.Spring.SpringValue("width")
 ```
 
-**Scenario:** Snap a spring immediately (skip animation) if the player presses Escape while a transition is running.
+**Scenario:** Snap a spring immediately if the player presses Escape while a transition is running.
 
 ```
 Event: Keyboard -> On "Escape" key pressed
-  Condition: TransitionPanel.behaviors.SpringY -> Is animating
-  Action: TransitionPanel.behaviors.SpringY -> Snap to target
+  Condition: TransitionPanel.behaviors.Spring -> Is Spring Animating  [id: "slide_y"]
+  Action: TransitionPanel.behaviors.Spring -> Snap Spring to Target  [id: "slide_y"]
 ```
 
 ### Always-Spring System
-
-*Continuously following a moving target.*
 
 **Scenario:** A camera smoothly follows the player with configurable lag.
 
 ```
 Event: On start of layout
-  Action: Camera.behaviors.SpringX -> Set always spring  [enabled: Enabled]  [target: Player.X]  [mode: Value]
-  Action: Camera.behaviors.SpringY -> Set always spring  [enabled: Enabled]  [target: Player.Y]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Enable]  [target: Player.X]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_y"]  [operation: Enable]  [target: Player.Y]  [mode: Value]
 
 Event: Every tick
-  Action: Camera.behaviors.SpringX -> Set always spring target  [target: Player.X]
-  Action: Camera.behaviors.SpringY -> Set always spring target  [target: Player.Y]
-  Action: Scroll -> ScrollTo  Camera.behaviors.SpringX.Value,  Camera.behaviors.SpringY.Value
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_x"]  [operation: Update target only]  [target: Player.X]  [mode: Value]
+  Action: World.behaviors.Spring -> Configure Always Spring
+      [id: "cam_y"]  [operation: Update target only]  [target: Player.Y]  [mode: Value]
+  Action: Scroll -> ScrollTo
+      World.behaviors.Spring.SpringValue("cam_x"),
+      World.behaviors.Spring.SpringValue("cam_y")
 ```
 
-**Scenario:** A turret barrel springs toward the player angle, always using the shortest rotational path.
+**Scenario:** A turret springs toward the player angle using the shortest rotational path.
 
 ```
 Event: On start of layout
-  Action: Turret.behaviors.SpringAngle -> Set always spring  [enabled: Enabled]  [target: 0]  [mode: Angle]
+  Action: Turret.behaviors.Spring -> Configure Always Spring
+      [id: "aim"]  [operation: Enable]  [target: 0]  [mode: Angle]
 
 Event: Every tick
-  Action: Turret.behaviors.SpringAngle -> Set always spring target
-      [target: angle(Turret.X, Turret.Y, Player.X, Player.Y)]
-  Action: Turret -> Set Angle to Turret.behaviors.SpringAngle.Value
-```
-
-### Mesh Spring System
-
-*Per-vertex physics deformation on a sprite.*
-
-**Scenario:** A character sprite squashes on landing and springs back.
-
-```
-Event: On start of layout
-  Action: Hero.behaviors.Spring -> Create mesh grid  [cols: 8]  [rows: 8]
-
-Event: Hero -> On landed
-  Action: Hero.behaviors.Spring -> Squash/stretch  [axis: Vertical]  [amount: 0.22]
-                                                    [centerX: 0.5]  [centerY: 1.0]  [radius: 1.0]
-
-Event: Hero.behaviors.Spring -> On mesh settled
-  // Play settle sound, etc.
-```
-
-**Scenario:** Check mesh support before use, fall back gracefully.
-
-```
-Event: On start of layout
-  Condition: HeroSprite.behaviors.Spring -> Mesh is supported
-  Action: HeroSprite.behaviors.Spring -> Create mesh grid  [cols: 6]  [rows: 6]
-
-Event: HeroSprite.behaviors.Spring -> On mesh unsupported
-  Action: System -> Set global variable "MeshEnabled" to 0
+  Action: Turret.behaviors.Spring -> Configure Always Spring
+      [id: "aim"]  [operation: Update target only]
+      [target: angle(Turret.X, Turret.Y, Player.X, Player.Y)]  [mode: Angle]
+  Action: Turret -> Set Angle to Turret.behaviors.Spring.SpringValue("aim")
 ```
 
 ### Trigger System
 
-*Reacting to spring lifecycle events.*
-
-**Scenario:** Play a sound when the spring finishes animating naturally (not skipped).
+**Scenario:** Play a sound when a spring finishes animating naturally.
 
 ```
-Event: MenuPanel.behaviors.SpringScale -> On reached target
+Event: UIHelper.behaviors.Spring -> On Spring Reached Target
+  Condition: UIHelper.behaviors.Spring.SpringEventId("last_completed") = "panel_slide"
   Action: Audio -> Play "panel_settled"
-
-Event: MenuPanel.behaviors.SpringScale -> On stopped
-  // Skipped - no sound
 ```
 
 ---
 
-## 13. Game Use Cases
+## 19. Game Use Cases
 
 ### 1. Bouncy Coin Pickup Counter
 
@@ -1292,7 +2158,7 @@ Each effect injects velocity into mesh vertices and lets the spring simulation h
 
 ---
 
-## 14. C3 Debugger
+## 20. C3 Debugger
 
 Open the debugger in Construct 3 with **Debug > Run** (or F9). Select the instance in the debugger panel. Simple Spring adds two sections.
 
@@ -1326,7 +2192,7 @@ Editing `value`, `to`, `velocity`, `stiffness`, `damping`, or `precision` live i
 
 ---
 
-## 15. Scripting
+## 21. Scripting
 
 ### Accessing the behavior from script
 
@@ -1414,7 +2280,7 @@ spring.addEventListener("OnReachedTarget", function handler() {
 
 ---
 
-## 16. Feature Deep-Dives
+## 22. Feature Deep-Dives
 
 ### Stiffness, Damping, and the Feel Dial
 
@@ -1448,24 +2314,126 @@ The behavior serializes its complete state: value, velocity, from/to targets, st
 
 ---
 
-## 17. Tips and Common Mistakes
+## 23. Tips and Common Mistakes
 
-- **You must drive properties yourself every tick.** The behavior only updates a number. You are responsible for writing `Set X to MyObj.behaviors.SpringX.Value` each tick. Forgetting this is the most common mistake.
+- **Multi-Spring requires you to read values yourself.** `SpringValue("id")` returns the number; you apply it to a property each tick. Colour and Transform springs with **Use For Instance: Yes** are the exception — they self-apply.
 
-- **Add the behavior twice for two-axis animation.** One Spring behavior = one animated number. For X and Y you need two behaviors. Give them distinct names ("SpringX", "SpringY") in the properties panel.
+- **Colour and Transform springs override each other within their type.** Only one colour spring and one transform-spring of each type (position / size / angle) can auto-apply to an object at a time. Starting a new spring with a different ID automatically takes over.
 
-- **Do not call `Spring to` every tick.** Each call re-sets the `from` value and fires `On Started`. Call it once on the triggering event, then read `Value` every tick.
+- **Do not call `Spring Named` every tick with a constant target.** Call it once when the target changes, then read `SpringValue` every tick. Calling Spring Named repeatedly re-sets the `from` value.
 
-- **`On reached target` vs `Has reached target`.** `On reached target` is a trigger - it fires once when the spring settles. `Has reached target` is a polled condition. Use the trigger for one-shot reactions; use the condition for continuous checks.
+- **Use `SpringEventId` to identify which spring triggered an event.** `On Spring Reached Target` fires for *any* named spring. Always gate sub-events on `SpringEventId("last_completed") = "my_spring_id"`.
 
-- **Mesh effects need `Create grid` first.** Calling `Punch` or `Wobble` before `Create grid` silently does nothing.
+- **Per-spring stiffness overrides the behavior default.** `Set Spring Settings` for a named spring overrides the behavior-level values for that spring only.
 
-- **Mesh coordinates are normalized (0–1), not pixels.** To convert a world-space impact point: `nx = (HitX - Sprite.BBoxLeft) / Sprite.Width`.
+- **Reset before animating from a specific start.** Call `Reset Spring` first if you need to guarantee a clean known start value, then `Spring Named`.
 
-- **`On stopped` fires for manual interruptions only.** Naturally settling springs fire `On reached target`. Only `Stop at current value` and `Snap to target` fire `On stopped`.
+- **`On Spring Reached Target` vs `Has Spring Reached Target`.** `On Spring Reached Target` is a trigger — it fires once when the spring settles. `Has Spring Reached Target` is a polled condition. Use the trigger for one-shot reactions.
 
-- **High stiffness (> 1) is valid but aggressive.** Values above `0.5` cause very rapid oscillation. This is not clamped - it can be useful for physical effects - but it will look wrong as an easing curve for most UI.
+- **Mesh effects use normalized (0–1) coordinates.** To convert a world-space hit position: `nx = (HitX - Sprite.BBoxLeft) / Sprite.Width`.
 
-- **Reset before animating in from a specific start.** If an object was previously animated and you want to start from a known position, call `Reset spring to [startValue]` first, then `Spring to [target]`. Otherwise the spring inherits the previous velocity.
+- **`On Spring Stopped` fires for manual interruptions only.** Naturally settling springs fire `On Spring Reached Target`. Only `Stop Spring` and `Snap Spring to Target` fire `On Spring Stopped`.
+
+- **High stiffness (> 1) is valid but aggressive.** Values above `0.5` cause very rapid oscillation. This is not clamped — it can be useful for physical effects — but it will look wrong as an easing curve for most UI.
 
 - **Mesh is only supported on world objects.** Non-world plugin instances will always fire `On Mesh Unsupported`. Keep mesh setup inside a `Mesh is supported` condition guard when the behavior is on a mixed-type object family.
+
+---
+
+## Migrating to v1.6.0.0
+
+v1.6.0.0 is **fully backward compatible**. All existing Core Spring events continue to work without modification. The deprecated ACEs simply disappear from new-event pickers — you can migrate at your own pace.
+
+### What changed
+
+| Area | v1.5 | v1.6.0.0 |
+|---|---|---|
+| Spring architecture | One anonymous spring per behavior instance | Unlimited named springs per instance (Map) |
+| Colour animation | Manual lerp or tween required | Colour Spring category with auto-apply |
+| Transform animation | Set X/Y/Angle/Scale manually every tick | Transform Spring category with auto-apply |
+| Mesh presets | 7 presets (0–6) | 11 presets (0–10) |
+| Core Spring ACEs | Fully exposed and primary | Deprecated, hidden from pickers, still functional |
+
+### Core Spring → Multi-Spring migration table
+
+| Deprecated ACE (Core Spring) | Replacement (Multi-Spring) | Notes |
+|---|---|---|
+| **Spring to** (Value mode) | **Spring Named** [start: Current Value, mode: Value] | Use any ID, e.g. `"default"` |
+| **Spring to** (Angle mode) | **Spring Named** [start: Current Value, mode: Angle] | — |
+| **Spring from/to** | **Spring Named** [start: From Value] | Specify From in the same action |
+| **Set always spring** | **Configure Always Spring** [operation: Enable] | — |
+| **Set always spring target** | **Configure Always Spring** [operation: Update target only] | — |
+| **Set stiffness / damping / precision** | **Set Spring Settings** [id: "default"] | Applies to the named spring only |
+| **Set velocity** | **Set Spring Velocity** [id: "default"] | — |
+| **Add to velocity** | **Add to Spring Velocity** [id: "default"] | — |
+| **Stop at current value** | **Stop Spring** [id: "default"] | — |
+| **Snap to target** | **Snap Spring to Target** [id: "default"] | — |
+| **Reset spring to** | **Reset Spring** [id: "default"] | — |
+| **Is animating** | **Is Spring Animating** [id: "default"] | — |
+| **Has reached target** | **Has Spring Reached Target** [id: "default"] | — |
+| **Is always spring enabled** | **Is Spring Always Spring Enabled** [id: "default"] | — |
+| **On started** | **On Spring Started** + check `SpringEventId("last_triggered")` | — |
+| **On reached target** | **On Spring Reached Target** + check `SpringEventId("last_completed")` | — |
+| **On stopped** | **On Spring Stopped** | — |
+| `Value` expression | `SpringValue("default")` | — |
+| `Velocity` expression | `SpringVelocity("default")` | — |
+| `From` expression | `SpringFrom("default")` | — |
+| `To` expression | `SpringTo("default")` | — |
+| `Progress` expression | `SpringProgress("default")` | — |
+| `Stiffness` expression | `SpringProperty("default", "stiffness")` | — |
+| `Damping` expression | `SpringProperty("default", "damping")` | — |
+| `Precision` expression | `SpringProperty("default", "precision")` | — |
+| `AlwaysSpringTarget` | `SpringTo("default")` when always-spring enabled | — |
+
+> **Tip:** The easiest migration strategy is to rename all your existing springs to `"default"` first. This keeps event logic identical while you gain access to Multi-Spring features. Add additional named springs gradually as you extend the project.
+
+### Mesh preset index changes
+
+Existing indices 0–6 are unchanged. The four new presets use indices 7–10:
+
+| Index | Preset | Status |
+|---|---|---|
+| 0 | Hit Impact | Unchanged |
+| 1 | Heavy Slam | Unchanged |
+| 2 | Sword Trail | Unchanged |
+| 3 | Wind Gust | Unchanged |
+| 4 | Electric Stun | Unchanged |
+| 5 | Portal Spawn | Unchanged |
+| 6 | UI Pop | Unchanged |
+| 7 | **Explosion Burst** | New in v1.6.0.0 |
+| 8 | **Jelly Bounce** | New in v1.6.0.0 |
+| 9 | **Whip Lash** | New in v1.6.0.0 |
+| 10 | **Teleport Glitch** | New in v1.6.0.0 |
+
+### Step-by-step migration guide
+
+**Step 1 — Do nothing (optional).** All existing Core Spring events still work. No migration required immediately.
+
+**Step 2 — Install v1.6.0.0.** Replace the `.c3addon` file. Existing events continue to function; deprecated ACEs stop appearing in pickers for new events.
+
+**Step 3 — Replace deprecated ACE usages (when ready).** Open each event that uses a Core Spring ACE and replace it with the Multi-Spring equivalent using the table above. The spring ID `"default"` is a drop-in replacement for the old anonymous spring.
+
+**Step 4 — Consolidate duplicate behavior instances.** If you added Simple Spring twice to an object (e.g., "SpringX" and "SpringY"), collapse them into one behavior with named springs `"x"` and `"y"`. Update all references from `behaviors.SpringX.Value` to `behaviors.Spring.SpringValue("x")`.
+
+**Step 5 — Adopt Colour Spring and Transform Spring.** For any object where you are manually setting blend colour or position/size/angle from a lerp or previous spring value each tick, replace that logic with a Colour Spring or Transform Spring action with **Use For Instance: Yes**. Delete the "Set every tick" event.
+
+### Common migration questions
+
+**Q: My `On started` trigger no longer fires correctly.**
+A: The new `On Spring Started` trigger fires for *any* named spring. Add a condition: `SpringEventId("last_triggered") = "default"` to filter it to the spring you care about.
+
+**Q: I used two behavior instances for X and Y. Can I collapse them?**
+A: Yes. Add Multi-Spring once. Use IDs `"x"` and `"y"`. Remove the duplicate behavior instance. Update all expressions from `behaviors.SpringX.Value` to `behaviors.Spring.SpringValue("x")`.
+
+**Q: My "Set stiffness" event no longer appears in the picker.**
+A: It is deprecated. The replacement is **Set Spring Settings** with an ID. The deprecated action still works in existing events.
+
+**Q: I was using `To` expression to read the always-spring target.**
+A: Use `SpringTo("your_id")` — it returns the current target value for any spring, including ones in always-spring mode.
+
+**Q: Does the save/load system still work?**
+A: Yes. The behavior serializes all named springs, colour springs, transform springs, and mesh vertex arrays. Mid-animation springs resume exactly where they were after a load. No extra event sheet logic needed.
+
+---
+
+*Simple Spring v1.6.0.0*

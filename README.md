@@ -1,15 +1,23 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
-<i>Simple numeric spring physics. Springs a value from a start to a target with velocity inheritance. now includes Mesh effects!</i> <br>
-### Version 1.5.0.1
+<i>Simple numeric spring physics with multiple named springs per behavior instance, plus object-level mesh effects.</i> <br>
+### Version 1.6.0.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.5.0.1.c3addon/salmanshh_simple_spring-1.5.0.1.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.6.0.0.c3addon/salmanshh_simple_spring-1.6.0.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.5.0.1
+#### What's New in 1.6.0.0
+**Added:**
+- Added Colour Springing ACEs.
+- Added Transform Springing ACEs.
+- Added Multi-Springing Support.
+- Added More Mesh Effect Presets (Explosion Burst, Jelly Bounce, Whip Lash, Teleport Glitch).
+
 **Changed:**
-update short description to mention Mesh Effects
+- Core Springing ACEs have been deprecated but still work, shouldn't show up anymore in the editor and descriptions will tell you an alternative ACEs to use.
+- Colour Springing: only one active ID can drive object colour at a time
+- Transform: one active ID each for Position, Size, and Angle
 
 
 <sub>[View full changelog](#changelog)</sub>
@@ -61,20 +69,25 @@ npm run dev
 ## Actions
 | Action | Description | Params
 | --- | --- | --- |
-| Add to velocity | Add a value to the spring's current velocity. | Value             *(number)* <br> |
-| Reset to value | Instantly reset the spring value and clear velocity. Stops any active animation. | Value             *(number)* <br> |
-| Set always spring to target | When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target. | Enabled             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
-| Set always spring target | Update the target for always spring mode without changing other settings. Only has an effect when always spring is enabled. | Target             *(number)* <br> |
-| Set damping | Set spring damping (0-1). Higher values reduce oscillation. | Damping             *(number)* <br> |
-| Set enabled | Enable or disable the spring behavior. | State             *(boolean)* <br> |
-| Set precision | Set spring precision threshold (0.0001-1). | Precision             *(number)* <br> |
-| Set stiffness | Set spring stiffness. Higher values increase responsiveness. | Stiffness             *(number)* <br> |
-| Set velocity | Set the spring's current velocity. | Velocity             *(number)* <br> |
-| Snap to target | Instantly jump to the target value. |  |
-| Spring from/to | Spring numeric value from start to target. Inherits velocity if already animating. | From             *(number)* <br>To             *(number)* <br> |
-| Spring from/to angle (deprecated) | Deprecated: use 'Spring to' with Angle mode instead. Spring angle value from start to target, taking the shortest path. | From             *(number)* <br>To             *(number)* <br> |
-| Spring to | Spring to a target value from the current value. Inherits velocity if already animating. Use Angle mode to take the shortest rotational path. | To             *(number)* <br>Mode             *(combo)* <br> |
-| Stop at current value | Stop the spring animation and keep the current value. |  |
+| Apply sprung colour to object | One-shot apply of the current sprung colour to the host object using supported runtime colour APIs. For fewer actions, use Spring/Reset colour ACEs with Apply To Object = Yes. | Spring ID             *(string)* <br> |
+| Reset colour spring | Instantly reset all channels of a named colour spring to a value using the selected colour space, with optional object apply. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Channel 1             *(number)* <br>Channel 2             *(number)* <br>Channel 3             *(number)* <br>Use For Instance             *(combo)* <br> |
+| Set colour spring settings | Set stiffness, damping, and precision for all three channels of a named colour spring. | Spring ID             *(string)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
+| Spring colour | Combined colour spring action for current-to-target or from-to workflows, with instance toggle. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Start Mode             *(combo)* <br>From Channel 1             *(number)* <br>From Channel 2             *(number)* <br>From Channel 3             *(number)* <br>To Channel 1             *(number)* <br>To Channel 2             *(number)* <br>To Channel 3             *(number)* <br>Use For Instance             *(combo)* <br> |
+| Stop colour spring | Stop all channels of a named colour spring at their current values. | Spring ID             *(string)* <br> |
+| Add to velocity | Deprecated. Use 'Add to spring velocity' in the Multi Spring category instead. | Value             *(number)* <br> |
+| Reset to value | Deprecated. Use 'Reset spring' in the Multi Spring category instead. | Value             *(number)* <br> |
+| Set always spring to target | Deprecated. Use 'Set always spring' in the Multi Spring category instead. | Enabled             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
+| Set always spring target | Deprecated. Use 'Set always spring target' in the Multi Spring category instead. | Target             *(number)* <br> |
+| Set damping | Deprecated. Use 'Set spring settings' in the Multi Spring category instead. | Damping             *(number)* <br> |
+| Set enabled | Deprecated. Enables or disables the entire behavior. There is no Multi Spring equivalent — use this if you need to pause all springs on an object. | State             *(boolean)* <br> |
+| Set precision | Deprecated. Use 'Set spring settings' in the Multi Spring category instead. | Precision             *(number)* <br> |
+| Set stiffness | Deprecated. Use 'Set spring settings' in the Multi Spring category instead. | Stiffness             *(number)* <br> |
+| Set velocity | Deprecated. Use 'Set spring velocity' in the Multi Spring category instead. | Velocity             *(number)* <br> |
+| Snap to target | Deprecated. Use 'Snap spring to target' in the Multi Spring category instead. |  |
+| Spring from/to | Deprecated. Use 'Spring from/to' in the Multi Spring category instead. | From             *(number)* <br>To             *(number)* <br> |
+| Spring from/to angle (deprecated) | Deprecated. Use 'Spring to' in the Multi Spring category with Angle mode instead. | From             *(number)* <br>To             *(number)* <br> |
+| Spring to | Deprecated. Use 'Spring to' in the Multi Spring category instead. | To             *(number)* <br>Mode             *(combo)* <br> |
+| Stop at current value | Deprecated. Use 'Stop spring' in the Multi Spring category instead. |  |
 | Mesh: Start constant sway | Start continuous sinusoidal sway. The mesh keeps swaying automatically each tick until Stop Constant Sway is called. Great for grass, plants, cloth, or flags. | Angle             *(number)* <br>Strength             *(number)* <br>Wavelength             *(number)* <br>Speed             *(number)* <br>Auto Mesh             *(combo)* <br> |
 | Do Mesh Effect: Directional bend | Bend the mesh toward a direction with stronger motion on the leading edge. Great for wind push, recoil lean, and directional impact anticipation. | Angle             *(number)* <br>Strength             *(number)* <br>Radius             *(number)* <br>Falloff             *(combo)* <br>Auto Mesh             *(combo)* <br> |
 | Do Mesh Effect: Impact trail wave | Create a directional banded wave from an impact path. Ideal for slash trails, dash wake distortion, and projectile fly-by pressure waves. | Origin X             *(number)* <br>Origin Y             *(number)* <br>Angle             *(number)* <br>Strength             *(number)* <br>Wavelength             *(number)* <br>Trail Width             *(number)* <br>Auto Mesh             *(combo)* <br> |
@@ -96,19 +109,34 @@ npm run dev
 | Set enabled | Enable or disable mesh spring simulation. | Enabled             *(boolean)* <br> |
 | Set precision | Set mesh settle precision. | Precision             *(number)* <br> |
 | Set stiffness | Set mesh spring stiffness. | Stiffness             *(number)* <br> |
+| Add to spring velocity | Add velocity to a named spring. | Spring ID             *(string)* <br>Velocity             *(number)* <br> |
+| Configure always spring | Combined always-spring action for enable/disable and target updates. | Spring ID             *(string)* <br>Operation             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
+| Remove spring | Remove a named spring and its state. The legacy default spring is reset instead of removed. | Spring ID             *(string)* <br> |
+| Reset spring | Reset a named spring to a specific value without animating. | Spring ID             *(string)* <br>Value             *(number)* <br> |
+| Set spring settings | Override stiffness, damping, and precision for a named spring. | Spring ID             *(string)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
+| Set spring velocity | Directly set the current velocity of a named spring. | Spring ID             *(string)* <br>Velocity             *(number)* <br> |
+| Snap spring to target | Finish a named spring immediately at its target value. | Spring ID             *(string)* <br> |
+| Spring named | Combined spring action for from-to and current-to-target workflows. | Spring ID             *(string)* <br>Start Mode             *(combo)* <br>From             *(number)* <br>To             *(number)* <br>Mode             *(combo)* <br> |
+| Stop spring | Stop a named spring immediately at its current value. | Spring ID             *(string)* <br> |
+| Set transform spring settings | Set stiffness, damping, and precision for a transform spring type. | Spring ID             *(string)* <br>Transform Type             *(combo)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
+| Spring transform angle | Combined angle spring action using current-to-target or from-to with value/angle mode, plus instance toggle. | Spring ID             *(string)* <br>Start Mode             *(combo)* <br>From Angle             *(number)* <br>To Angle             *(number)* <br>Angle Mode             *(combo)* <br>Use For Instance             *(combo)* <br> |
+| Spring transform XY | Combined spring action for Position/Size using current-to-target or from-to, with instance toggle. | Spring ID             *(string)* <br>Transform Type             *(combo)* <br>Start Mode             *(combo)* <br>From A             *(number)* <br>From B             *(number)* <br>To A             *(number)* <br>To B             *(number)* <br>Use For Instance             *(combo)* <br> |
+| Stop transform spring | Stop a transform spring and disable its auto-apply. | Spring ID             *(string)* <br>Transform Type             *(combo)* <br> |
 
 
 ---
 ## Conditions
 | Condition | Description | Params
 | --- | --- | --- |
-| Has reached target | True if the spring has reached its target. |  |
-| Is always spring enabled | True if always spring mode is currently enabled. |  |
-| Is animating | True if the spring is currently animating. |  |
-| Is enabled | True if the spring behavior is enabled. |  |
-| On reached target | Triggered when the spring reaches its target. |  |
-| On started | Triggered when the spring begins a new animation. |  |
-| On stopped | Triggered when the spring is manually stopped via Stop or Snap to target. |  |
+| Has colour spring reached target | True if all channels in the named colour spring have reached their targets. | Spring ID *(string)* <br> |
+| Is colour spring animating | True if any channel in the named colour spring is animating. | Spring ID *(string)* <br> |
+| Has reached target | Deprecated. Use 'Has spring reached target' in the Multi Spring category instead. |  |
+| Is always spring enabled | Deprecated. Use 'Is always spring enabled' in the Multi Spring category instead. |  |
+| Is animating | Deprecated. Use 'Is spring animating' in the Multi Spring category instead. |  |
+| Is enabled | Deprecated. Checks if the entire behavior is enabled. There is no Multi Spring equivalent — use this if you need to check the behavior-level enabled state. |  |
+| On reached target | Deprecated. Use 'On spring reached target' in the Multi Spring category instead. |  |
+| On started | Deprecated. Use 'On spring started' in the Multi Spring category instead. |  |
+| On stopped | Deprecated. Use 'On spring stopped' in the Multi Spring category instead. |  |
 | Is mesh sway enabled | True while constant sway is running. Use this to check whether sway was started before starting it again, or to branch logic when sway is active. |  |
 | Has settled | True if mesh motion is currently settled. |  |
 | Is animating | True if mesh points are currently animating. |  |
@@ -117,31 +145,72 @@ npm run dev
 | On settled | Triggered when mesh spring animation settles. |  |
 | On started | Triggered when mesh spring animation starts. |  |
 | On unsupported | Triggered when a mesh action is called on an instance that does not support mesh. |  |
+| Has spring reached target | True if the named spring has settled at its target. | Spring ID *(string)* <br> |
+| Is always spring enabled | True if the named spring is in always spring mode. | Spring ID *(string)* <br> |
+| Is spring animating | True if the named spring is currently animating. | Spring ID *(string)* <br> |
+| On spring reached target | Triggered when a named spring settles at its target. Leave the id empty to catch any spring. | Spring ID *(string)* <br> |
+| On spring started | Triggered when a named spring begins animating. Leave the id empty to catch any spring. | Spring ID *(string)* <br> |
+| On spring stopped | Triggered when a named spring is stopped or snapped. Leave the id empty to catch any spring. | Spring ID *(string)* <br> |
+| Has transform spring reached target | True if the selected transform spring has reached its target. | Spring ID *(string)* <br>Transform Type *(combo)* <br> |
+| Is transform spring animating | True if the selected transform spring is currently animating. | Spring ID *(string)* <br>Transform Type *(combo)* <br> |
 
 
 ---
 ## Expressions
 | Expression | Description | Return Type | Params
 | --- | --- | --- | --- |
-| AlwaysSpringTarget | Get the current always spring target value. | number |  | 
-| Damping | Get the current damping. | number |  | 
-| From | Get the from (start) value. | number |  | 
-| Precision | Get the current precision threshold. | number |  | 
-| Progress | Get the animation progress from 0 (at start) to 1 (at target). | number |  | 
-| Stiffness | Get the current stiffness. | number |  | 
-| To | Get the to (target) value. | number |  | 
-| Value | Get the current spring value. | number |  | 
-| Velocity | Get the current velocity. | number |  | 
+| ColourBlue | Get the current blue channel (0-255) of a named colour spring. | number | Spring ID *(string)* <br> | 
+| ColourGreen | Get the current green channel (0-255) of a named colour spring. | number | Spring ID *(string)* <br> | 
+| ColourHex | Get the current colour of a named spring as a #RRGGBB string. | string | Spring ID *(string)* <br> | 
+| ColourRed | Get the current red channel (0-255) of a named colour spring. | number | Spring ID *(string)* <br> | 
+| AlwaysSpringTarget | Deprecated. There is no direct Multi Spring replacement — always spring target is managed via 'Set always spring' and 'Set always spring target' actions. | number |  | 
+| Damping | Deprecated. Use SpringDamping("id") in the Multi Spring category instead. | number |  | 
+| From | Deprecated. Use SpringFrom("id") in the Multi Spring category instead. | number |  | 
+| Precision | Deprecated. Use SpringPrecision("id") in the Multi Spring category instead. | number |  | 
+| Progress | Deprecated. Use SpringProgress("id") in the Multi Spring category instead. | number |  | 
+| Stiffness | Deprecated. Use SpringStiffness("id") in the Multi Spring category instead. | number |  | 
+| To | Deprecated. Use SpringTo("id") in the Multi Spring category instead. | number |  | 
+| Value | Deprecated. Use SpringValue("id") in the Multi Spring category instead. | number |  | 
+| Velocity | Deprecated. Use SpringVelocity("id") in the Multi Spring category instead. | number |  | 
 | MeshCols | Get current mesh column count. | number |  | 
 | MeshEnergy | Total kinetic + displacement energy across all mesh points. Returns 0 when the mesh is fully at rest. Use this to check whether the mesh is still animating e.g. trigger a sound or effect only while energy > 0.01. | number |  | 
 | MeshOffsetXAtIndex | Get mesh point X offset at index. | number | Index *(number)* <br> | 
 | MeshOffsetYAtIndex | Get mesh point Y offset at index. | number | Index *(number)* <br> | 
 | MeshPointCount | Get total mesh point count for Repeat loop workflows. | number |  | 
 | MeshRows | Get current mesh row count. | number |  | 
+| SpringCount | Get how many named springs currently exist on this behavior instance. | number |  | 
+| SpringEventId | Get recent spring event ids. | string | Event Type *(string)* <br> | 
+| SpringFrom | Get the starting value of a named spring. | number | Spring ID *(string)* <br> | 
+| SpringIdAt | Get a spring id by zero-based index. | string | Index *(number)* <br> | 
+| SpringProgress | Get progress from 0 to 1 for a named spring. | number | Spring ID *(string)* <br> | 
+| SpringProperty | Get stiffness, damping, or precision of a named spring. | number | Spring ID *(string)* <br>Property *(string)* <br> | 
+| SpringTo | Get the target value of a named spring. | number | Spring ID *(string)* <br> | 
+| SpringValue | Get the current value of a named spring. | number | Spring ID *(string)* <br> | 
+| SpringVelocity | Get the current velocity of a named spring. | number | Spring ID *(string)* <br> | 
+| TransformAngle | Get the current sprung angle value for a transform angle spring. | number | Spring ID *(string)* <br> | 
+| TransformHeight | Get the current sprung height value for a transform size spring. | number | Spring ID *(string)* <br> | 
+| TransformWidth | Get the current sprung width value for a transform size spring. | number | Spring ID *(string)* <br> | 
+| TransformX | Get the current sprung X value for a transform position spring. | number | Spring ID *(string)* <br> | 
+| TransformY | Get the current sprung Y value for a transform position spring. | number | Spring ID *(string)* <br> | 
 
 
 ---
 ## Changelog
+
+### Version 1.6.0.0
+
+**Added:**
+- Added Colour Springing ACEs.
+- Added Transform Springing ACEs.
+- Added Multi-Springing Support.
+- Added More Mesh Effect Presets (Explosion Burst, Jelly Bounce, Whip Lash, Teleport Glitch).
+
+**Changed:**
+- Core Springing ACEs have been deprecated but still work, shouldn't show up anymore in the editor and descriptions will tell you an alternative ACEs to use.
+- Colour Springing: only one active ID can drive object colour at a time
+- Transform: one active ID each for Position, Size, and Angle
+
+---
 
 ### Version 1.5.0.1
 

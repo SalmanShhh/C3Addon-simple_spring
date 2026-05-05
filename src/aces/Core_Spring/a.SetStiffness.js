@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "Set stiffness",
   displayText: "Set stiffness to {0}",
-  description: "Set spring stiffness. Higher values increase responsiveness.",
+  description: "Deprecated. Use 'Set spring settings' in the Multi Spring category instead.",
   params: [{ id: "value", name: "Stiffness", desc: "Stiffness value.", type: "number", initialValue: "0.15" }],
 };
 

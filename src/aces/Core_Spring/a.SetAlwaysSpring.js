@@ -1,7 +1,8 @@
 export const config = {
+  deprecated: true,
   listName: "Set always spring to target",
   displayText: "Set always spring to target: {0} to {1} (mode: {2})",
-  description: "When enabled, the spring will continuously spring towards the target value even after reaching it. Useful for following a changing target.",
+  description: "Deprecated. Use 'Set always spring' in the Multi Spring category instead.",
   params: [
     {
       id: "enabled",

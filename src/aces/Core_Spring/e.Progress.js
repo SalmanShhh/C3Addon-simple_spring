@@ -1,6 +1,7 @@
-export const config = { 
-    returnType: "number", 
-    description: "Get the animation progress from 0 (at start) to 1 (at target).", 
+export const config = {
+    deprecated: true,
+    returnType: "number",
+    description: "Deprecated. Use SpringProgress(\"id\") in the Multi Spring category instead.",
     params: [] };
 
 export default function () { return this._getProgress(); }
