@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Set always spring to target",
-  displayText: "Set always spring to target: {0} to {1} (mode: {2})",
-  description: "Deprecated. Use 'Set always spring' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Set always spring to target: {0} to {1} (mode: {2})",
+  description: "Deprecated. Use 'Constant: Set spring' in the Multi Spring category instead.",
   params: [
     {
       id: "enabled",

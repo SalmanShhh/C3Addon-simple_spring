@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Set precision",
-  displayText: "Set precision to {0}",
-  description: "Deprecated. Use 'Set spring settings' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Set precision to {0}",
+  description: "Deprecated. Use 'Settings: Set spring' in the Multi Spring category instead.",
   params: [{ id: "value", name: "Precision", desc: "Precision threshold (0.0001-1).", type: "number", initialValue: "0.01" }],
 };
 

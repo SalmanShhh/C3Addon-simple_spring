@@ -39,10 +39,13 @@ export const files = {
 
 // categories that are not filled will use the folder name
 export const aceCategories = {
-  Core_Spring: "Core Spring",
-  Multi_Spring: "Multi Spring",
+  Core_Spring: "Core Spring (DEPRECATED)",
+  Multi_Spring: "Spring Values",
+  Multi_Spring_Playback: "Springs Playback",
   Colour_Spring: "Colour Spring",
-  Transform_Spring: "Transform Spring",
+  Spring_Position: "Spring Position",
+  Spring_Size: "Spring Size",
+  Spring_Angle: "Spring Angle",
   Mesh_Setup: "Mesh Setup",
   Mesh_Effects: "Mesh Effects",
   Mesh_State: "Mesh State",
@@ -90,8 +93,8 @@ export const properties = [
   {
     type: PROPERTY_TYPE.FLOAT,
     id: "stiffness",
-    name: "Stiffness",
-    desc: "How quickly spring responds, Increase stiffness for faster response.",
+    name: "Default Stiffness",
+    desc: "Default stiffness applied to newly created springs. How quickly the spring responds - increase for faster response.",
     options: {
       initialValue: 1.25,
       minValue: 0.,
@@ -100,8 +103,8 @@ export const properties = [
   {
     type: PROPERTY_TYPE.FLOAT,
     id: "damping",
-    name: "Damping",
-    desc: "How much oscillation is dampened (0-1), Increase damping to reduce overshoot.",
+    name: "Default Damping",
+    desc: "Default damping applied to newly created springs (0-1). Increase to reduce overshoot and oscillation.",
     options: {
       initialValue: 0.9,
       minValue: 0,
@@ -111,8 +114,8 @@ export const properties = [
   {
     type: PROPERTY_TYPE.FLOAT,
     id: "precision",
-    name: "Precision",
-    desc: "Threshold to consider animation complete. Lower values require closer proximity to target.",
+    name: "Default Precision",
+    desc: "Default precision applied to newly created springs. Threshold to consider animation complete - lower values require closer proximity to target.",
     options: {
       initialValue: 0.01,
       minValue: 0.0001,

@@ -1,5 +1,5 @@
 export const config = {
-  listName: "Set colour spring settings",
+  listName: "Settings: Set colour spring",
   displayText: "Set colour spring {0} settings to stiffness {1}, damping {2}, precision {3}",
   description: "Set stiffness, damping, and precision for all three channels of a named colour spring.",
   params: [

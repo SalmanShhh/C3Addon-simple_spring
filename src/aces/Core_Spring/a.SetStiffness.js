@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Set stiffness",
-  displayText: "Set stiffness to {0}",
-  description: "Deprecated. Use 'Set spring settings' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Set stiffness to {0}",
+  description: "Deprecated. Use 'Settings: Set spring' in the Multi Spring category instead.",
   params: [{ id: "value", name: "Stiffness", desc: "Stiffness value.", type: "number", initialValue: "0.15" }],
 };
 

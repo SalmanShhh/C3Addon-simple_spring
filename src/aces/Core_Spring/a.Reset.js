@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Reset to value",
-  displayText: "Reset spring to {0}",
-  description: "Deprecated. Use 'Reset spring' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Reset spring to {0}",
+  description: "Deprecated. Use the Multi Spring category to set a named spring's start value or recreate the spring instead.",
   params: [{ id: "value", name: "Value", desc: "Value to reset to.", type: "number", initialValue: "0" }],
 };
 

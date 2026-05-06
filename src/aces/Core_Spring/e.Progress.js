@@ -1,7 +1,7 @@
 export const config = {
-    deprecated: true,
+    isDeprecated: true,
     returnType: "number",
-    description: "Deprecated. Use SpringProgress(\"id\") in the Multi Spring category instead.",
+    description: "Deprecated. Use the Multi Spring category expression SpringProgress(\"id\") instead.",
     params: [] };
 
 export default function () { return this._getProgress(); }

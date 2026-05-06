@@ -1,7 +1,7 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Has reached target",
-  displayText: "Has reached target",
+  displayText: "(DEPRECATED) Has reached target",
   description: "Deprecated. Use 'Has spring reached target' in the Multi Spring category instead.",
   isInvertible: true,
   params: [],

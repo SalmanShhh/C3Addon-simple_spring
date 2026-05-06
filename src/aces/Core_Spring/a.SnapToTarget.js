@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Snap to target",
-  displayText: "Snap to target",
-  description: "Deprecated. Use 'Snap spring to target' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Snap to target",
+  description: "Deprecated. Use the Multi Spring Playback category to snap or clear a named spring instead.",
   params: [],
 };
 

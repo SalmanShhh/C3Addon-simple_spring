@@ -1,7 +1,7 @@
 export const config = {
-    deprecated: true,
+    isDeprecated: true,
     returnType: "number",
-    description: "Deprecated. Use SpringStiffness(\"id\") in the Multi Spring category instead.",
+    description: "Deprecated. Use the Multi Spring category expression SpringStiffness(\"id\") instead.",
     params: [] };
 
 export default function () { return this._getStiffness(); }

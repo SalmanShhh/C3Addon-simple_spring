@@ -1,7 +1,7 @@
 export const config = {
-    deprecated: true,
+    isDeprecated: true,
     returnType: "number",
-    description: "Deprecated. Use SpringFrom(\"id\") in the Multi Spring category instead.",
+    description: "Deprecated. Use the Multi Spring category expression SpringFrom(\"id\") instead.",
     params: [] };
 
 export default function () { return this._getFromValue(); }

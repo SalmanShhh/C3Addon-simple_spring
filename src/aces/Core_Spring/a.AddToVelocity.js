@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Add to velocity",
-  displayText: "Add {0} to velocity",
-  description: "Deprecated. Use 'Add to spring velocity' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Add {0} to spring velocity",
+  description: "Deprecated. Use 'Velocity: Add to named spring' in the Multi Spring category instead.",
   params: [{ id: "value", name: "Value", desc: "Value to add to velocity.", type: "number", initialValue: "0" }],
 };
 

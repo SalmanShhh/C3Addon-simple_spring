@@ -1,5 +1,5 @@
 export const config = {
-  listName: "Remove spring",
+  listName: "Manage: Remove spring",
   displayText: "Remove spring {0}",
   description: "Remove a named spring and its state. The legacy default spring is reset instead of removed.",
   params: [

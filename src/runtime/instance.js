@@ -16,6 +16,19 @@ export default function (parentClass) {
       this._autoApplyTransformPositionSpringIds = new Set();
       this._autoApplyTransformSizeSpringIds = new Set();
       this._autoApplyTransformAngleSpringIds = new Set();
+      this._springActionQueueById = new Map();
+      this._springCompletionWaiters = new Map();
+      // Track only springs that still need per-tick attention.
+      this._activeSpringIds = new Set();
+      // Cache the last successful target + method + signature per apply path.
+      this._applyMethodCache = {
+        colour: null,
+        positionXY: null,
+        positionXYZ: null,
+        sizeWH: null,
+        sizeWHD: null,
+        angle: null,
+      };
 
       // Settings
       this._stiffness = Number(props[0]) || 0.15;
@@ -52,13 +65,75 @@ export default function (parentClass) {
       this._setTicking(true);
     }
 
+    _waitForSpringCompletion(springId) {
+      const normalizedId = this._normalizeSpringId(springId);
+      const spring = this._getSpring(normalizedId, false);
+
+      if (!spring || !spring.isAnimating) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve) => {
+        const waiters = this._springCompletionWaiters.get(normalizedId) || new Set();
+        waiters.add(resolve);
+        this._springCompletionWaiters.set(normalizedId, waiters);
+      });
+    }
+
+    _resolveSpringCompletionWaiters(springId) {
+      const normalizedId = this._normalizeSpringId(springId);
+      const waiters = this._springCompletionWaiters.get(normalizedId);
+      if (!waiters) {
+        return;
+      }
+
+      this._springCompletionWaiters.delete(normalizedId);
+      for (const resolve of waiters) {
+        resolve();
+      }
+    }
+
+    async _runSpringActionWithOptionalWait(springId, waitForPreviousActions, startFn) {
+      const normalizedId = this._normalizeSpringId(springId);
+
+      if (!waitForPreviousActions) {
+        startFn();
+        return;
+      }
+
+      const previous = this._springActionQueueById.get(normalizedId) || Promise.resolve();
+
+      const run = (async () => {
+        await previous.catch(() => {});
+        startFn();
+        await this._waitForSpringCompletion(normalizedId);
+      })();
+
+      this._springActionQueueById.set(normalizedId, run);
+
+      try {
+        await run;
+      } finally {
+        if (this._springActionQueueById.get(normalizedId) === run) {
+          this._springActionQueueById.delete(normalizedId);
+        }
+      }
+    }
+
     _tick() {
       if (!this._isEnabled) return;
 
       const dt = Math.min(this.instance.runtime.dt, 0.067); // Cap at ~15fps
 
-      for (const spring of this._springs.values()) {
+      // Tick only active springs to avoid scanning every known spring each frame.
+      for (const springId of this._activeSpringIds) {
+        const spring = this._getSpring(springId, false);
+        if (!spring) {
+          this._activeSpringIds.delete(springId);
+          continue;
+        }
         this._tickSpring(spring, dt);
+        this._refreshSpringActiveState(spring);
       }
 
       const activeColourSpringId = this._getSingleActiveSpringId(this._autoApplyColourSpringIds);
@@ -95,6 +170,7 @@ export default function (parentClass) {
         value: 0,
         velocity: 0,
         isAnimating: false,
+        isPaused: false,
         smoothValue: 0,
         time: 0,
         steps: 0,
@@ -107,7 +183,30 @@ export default function (parentClass) {
       };
 
       this._springs.set(springId, spring);
+      this._refreshSpringActiveState(spring);
       return spring;
+    }
+
+    _isSpringActiveForTick(spring) {
+      // Paused springs stay tracked so they can resume without a full map scan.
+      return !!spring && (spring.isAnimating || spring.isPaused || spring.alwaysSpringEnabled);
+    }
+
+    _refreshSpringActiveState(spring) {
+      if (!spring) return;
+      if (this._isSpringActiveForTick(spring)) {
+        this._activeSpringIds.add(spring.id);
+      } else {
+        this._activeSpringIds.delete(spring.id);
+      }
+    }
+
+    _rebuildActiveSpringIds() {
+      // Rebuild after bulk state restores like save/load.
+      this._activeSpringIds.clear();
+      for (const spring of this._springs.values()) {
+        this._refreshSpringActiveState(spring);
+      }
     }
 
     _normalizeSpringId(id) {
@@ -129,6 +228,7 @@ export default function (parentClass) {
       if (springId === this._defaultSpringId) {
         const spring = this._getSpring(springId, true);
         this._resetSpringState(spring, 0);
+        this._resolveSpringCompletionWaiters(springId);
         spring.from = 0;
         spring.to = 0;
         spring.alwaysSpringEnabled = false;
@@ -136,8 +236,11 @@ export default function (parentClass) {
         spring.stiffness = this._stiffness;
         spring.damping = this._damping;
         spring.precision = this._precision;
+        this._refreshSpringActiveState(spring);
         return false;
       }
+      this._resolveSpringCompletionWaiters(springId);
+      this._activeSpringIds.delete(springId);
       return this._springs.delete(springId);
     }
 
@@ -149,6 +252,7 @@ export default function (parentClass) {
       spring.time = 0;
       spring.steps = 0;
       spring.isAnimating = false;
+      this._refreshSpringActiveState(spring);
     }
 
     _finishSpring(spring) {
@@ -158,6 +262,8 @@ export default function (parentClass) {
       spring.isAnimating = false;
       spring.time = 0;
       spring.steps = 0;
+      this._refreshSpringActiveState(spring);
+      this._resolveSpringCompletionWaiters(spring.id);
     }
 
     _stepSpringPhysics(spring) {
@@ -177,6 +283,10 @@ export default function (parentClass) {
     }
 
     _tickSpring(spring, dt) {
+      if (spring.isPaused) {
+        return;
+      }
+
       if (spring.alwaysSpringEnabled && !spring.isAnimating) {
         const dist = Math.abs(spring.to - spring.value);
         const speed = Math.abs(spring.velocity);
@@ -191,14 +301,15 @@ export default function (parentClass) {
 
       spring.time += dt;
 
-      const targetSteps = Math.floor(spring.time * 60);
+      const time60 = spring.time * 60;
+      const targetSteps = Math.floor(time60);
       while (spring.steps < targetSteps) {
         spring.prevValue = spring.value;
         this._stepSpringPhysics(spring);
         spring.steps++;
       }
 
-      const t = (spring.time * 60) - spring.steps;
+      const t = time60 - spring.steps;
       spring.smoothValue = spring.prevValue + (spring.value - spring.prevValue) * t;
 
       const dist = Math.abs(spring.to - spring.value);
@@ -278,7 +389,9 @@ export default function (parentClass) {
 
       spring.from = from;
       spring.to = to;
+      spring.isPaused = false;
       spring.isAnimating = true;
+      this._refreshSpringActiveState(spring);
 
       if (!wasAnimating) {
         this._lastStartedSpringId = spring.id;
@@ -319,7 +432,9 @@ export default function (parentClass) {
 
       spring.from = spring.smoothValue;
       spring.to = targetTo;
+      spring.isPaused = false;
       spring.isAnimating = true;
+      this._refreshSpringActiveState(spring);
 
       if (!wasAnimating) {
         this._lastStartedSpringId = spring.id;
@@ -351,7 +466,9 @@ export default function (parentClass) {
 
       spring.from = spring.value;
       spring.to = spring.value + diff;
+      spring.isPaused = false;
       spring.isAnimating = true;
+      this._refreshSpringActiveState(spring);
 
       if (!wasAnimating) {
         this._lastStartedSpringId = spring.id;
@@ -404,10 +521,90 @@ export default function (parentClass) {
       spring.to = spring.value;
       spring.smoothValue = spring.value;
       spring.velocity = 0;
+      spring.isPaused = false;
       spring.isAnimating = false;
       spring.time = 0;
       spring.steps = 0;
+      this._refreshSpringActiveState(spring);
+      this._resolveSpringCompletionWaiters(spring.id);
       this._triggerSpringEvent("OnStopped", "OnSpringStopped", spring.id);
+    }
+
+    _getRelatedSpringIds(id) {
+      const springId = this._normalizeSpringId(id);
+      return [
+        springId,
+        this._colourSpringChannelId(springId, "r"),
+        this._colourSpringChannelId(springId, "g"),
+        this._colourSpringChannelId(springId, "b"),
+        this._transformSpringChannelId("position", springId, "x"),
+        this._transformSpringChannelId("position", springId, "y"),
+        this._transformSpringChannelId("position", springId, "z"),
+        this._transformSpringChannelId("size", springId, "w"),
+        this._transformSpringChannelId("size", springId, "h"),
+        this._transformSpringChannelId("size", springId, "d"),
+        this._transformSpringChannelId("angle", springId, "a"),
+      ];
+    }
+
+    _pauseSpringById(id) {
+      for (const relatedId of this._getRelatedSpringIds(id)) {
+        const spring = this._getSpring(relatedId, false);
+        if (!spring) continue;
+        spring.isPaused = true;
+        this._refreshSpringActiveState(spring);
+      }
+    }
+
+    _resumeSpringById(id) {
+      for (const relatedId of this._getRelatedSpringIds(id)) {
+        const spring = this._getSpring(relatedId, false);
+        if (!spring) continue;
+        spring.isPaused = false;
+        this._refreshSpringActiveState(spring);
+      }
+    }
+
+    _pauseAllSprings() {
+      for (const spring of this._springs.values()) {
+        spring.isPaused = true;
+        this._refreshSpringActiveState(spring);
+      }
+    }
+
+    _resumeAllSprings() {
+      for (const spring of this._springs.values()) {
+        spring.isPaused = false;
+        this._refreshSpringActiveState(spring);
+      }
+    }
+
+    _clearSpringById(id) {
+      const springId = this._normalizeSpringId(id);
+
+      this._autoApplyColourSpringIds.delete(springId);
+      this._autoApplyTransformPositionSpringIds.delete(springId);
+      this._autoApplyTransformSizeSpringIds.delete(springId);
+      this._autoApplyTransformAngleSpringIds.delete(springId);
+
+      for (const relatedId of this._getRelatedSpringIds(springId)) {
+        this._removeSpring(relatedId);
+      }
+    }
+
+    _clearAllSprings() {
+      const ids = Array.from(this._springs.keys());
+      for (const id of ids) {
+        this._removeSpring(id);
+      }
+
+      this._autoApplyColourSpringIds.clear();
+      this._autoApplyTransformPositionSpringIds.clear();
+      this._autoApplyTransformSizeSpringIds.clear();
+      this._autoApplyTransformAngleSpringIds.clear();
+      this._springActionQueueById.clear();
+      this._springCompletionWaiters.clear();
+      this._activeSpringIds.clear();
     }
 
     _stopAtCurrentValue() {
@@ -432,6 +629,8 @@ export default function (parentClass) {
       spring.from = v;
       spring.to = v;
       this._resetSpringState(spring, v);
+      this._refreshSpringActiveState(spring);
+      this._resolveSpringCompletionWaiters(spring.id);
     }
 
     _resetToValue(v) {
@@ -442,6 +641,7 @@ export default function (parentClass) {
       const spring = this._getSpring(id, true);
       spring.velocity = Number(v);
       spring.isAnimating = true;
+      this._refreshSpringActiveState(spring);
     }
 
     _setVelocity(v) {
@@ -452,6 +652,7 @@ export default function (parentClass) {
       const spring = this._getSpring(id, true);
       spring.velocity += Number(v);
       spring.isAnimating = true;
+      this._refreshSpringActiveState(spring);
     }
 
     _addToVelocity(v) {
@@ -471,10 +672,41 @@ export default function (parentClass) {
         spring.time = 0;
         spring.steps = 0;
       }
+      this._refreshSpringActiveState(spring);
     }
 
     _setAlwaysSpring(enabled, target, mode) {
       this._setAlwaysSpringId(this._defaultSpringId, enabled, target, mode);
+    }
+
+    _configureAlwaysSpringValueId(id, operation, target, mode = 0, initialValue = 0) {
+      const normalizedOperation = Number(operation) || 0;
+      if (!this._getSpring(id, false)) {
+        this._resetToValueId(id, initialValue);
+      }
+
+      const spring = this._getSpring(id, true);
+      spring.to = Number(target);
+
+      if (normalizedOperation === 2) {
+        if (spring.alwaysSpringEnabled) {
+          spring.isAnimating = true;
+        }
+        this._refreshSpringActiveState(spring);
+        return;
+      }
+
+      spring.alwaysSpringEnabled = normalizedOperation === 0;
+      spring.alwaysSpringMode = Number(mode) || 0;
+
+      if (spring.alwaysSpringEnabled) {
+        const dist = Math.abs(spring.to - spring.value);
+        const speed = Math.abs(spring.velocity);
+        if (dist >= spring.precision || speed >= spring.precision) {
+          spring.isAnimating = true;
+        }
+      }
+      this._refreshSpringActiveState(spring);
     }
 
     _setAlwaysSpringTargetId(id, target) {
@@ -483,6 +715,7 @@ export default function (parentClass) {
       if (spring.alwaysSpringEnabled) {
         spring.isAnimating = true;
       }
+      this._refreshSpringActiveState(spring);
     }
 
     _setAlwaysSpringTarget(target) {
@@ -528,84 +761,40 @@ export default function (parentClass) {
       return Math.max(min, Math.min(max, Number(value) || 0));
     }
 
-    _hslToRgb255(h, s, l) {
-      const hue = ((Number(h) % 360) + 360) % 360;
-      const sat = this._clamp(s, 0, 100) / 100;
-      const lit = this._clamp(l, 0, 100) / 100;
-
-      const c = (1 - Math.abs((2 * lit) - 1)) * sat;
-      const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-      const m = lit - (c / 2);
-
+    // Shared hue-sector branching used by both HSL and HSV conversions.
+    _hueToRgb255Components(hue, c, x, m) {
       let r1 = 0;
       let g1 = 0;
       let b1 = 0;
 
-      if (hue < 60) {
-        r1 = c;
-        g1 = x;
-      } else if (hue < 120) {
-        r1 = x;
-        g1 = c;
-      } else if (hue < 180) {
-        g1 = c;
-        b1 = x;
-      } else if (hue < 240) {
-        g1 = x;
-        b1 = c;
-      } else if (hue < 300) {
-        r1 = x;
-        b1 = c;
-      } else {
-        r1 = c;
-        b1 = x;
-      }
+      if (hue < 60)       { r1 = c; g1 = x; }
+      else if (hue < 120) { r1 = x; g1 = c; }
+      else if (hue < 180) { g1 = c; b1 = x; }
+      else if (hue < 240) { g1 = x; b1 = c; }
+      else if (hue < 300) { r1 = x; b1 = c; }
+      else                { r1 = c; b1 = x; }
 
-      return [
-        (r1 + m) * 255,
-        (g1 + m) * 255,
-        (b1 + m) * 255,
-      ];
+      return [(r1 + m) * 255, (g1 + m) * 255, (b1 + m) * 255];
+    }
+
+    _hslToRgb255(h, s, l) {
+      const hue = ((Number(h) % 360) + 360) % 360;
+      const sat = this._clamp(s, 0, 100) / 100;
+      const lit = this._clamp(l, 0, 100) / 100;
+      const c = (1 - Math.abs((2 * lit) - 1)) * sat;
+      const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
+      const m = lit - (c / 2);
+      return this._hueToRgb255Components(hue, c, x, m);
     }
 
     _hsvToRgb255(h, s, v) {
       const hue = ((Number(h) % 360) + 360) % 360;
       const sat = this._clamp(s, 0, 100) / 100;
       const val = this._clamp(v, 0, 100) / 100;
-
       const c = val * sat;
       const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
       const m = val - c;
-
-      let r1 = 0;
-      let g1 = 0;
-      let b1 = 0;
-
-      if (hue < 60) {
-        r1 = c;
-        g1 = x;
-      } else if (hue < 120) {
-        r1 = x;
-        g1 = c;
-      } else if (hue < 180) {
-        g1 = c;
-        b1 = x;
-      } else if (hue < 240) {
-        g1 = x;
-        b1 = c;
-      } else if (hue < 300) {
-        r1 = x;
-        b1 = c;
-      } else {
-        r1 = c;
-        b1 = x;
-      }
-
-      return [
-        (r1 + m) * 255,
-        (g1 + m) * 255,
-        (b1 + m) * 255,
-      ];
+      return this._hueToRgb255Components(hue, c, x, m);
     }
 
     _colourToRgb255(space, c1, c2, c3) {
@@ -627,21 +816,31 @@ export default function (parentClass) {
     }
 
     _setColourSpringAutoApplyId(id, enabled) {
-      const springId = this._normalizeSpringId(id);
-      if (enabled) {
-        // Only one colour spring should drive the instance at a time.
-        this._autoApplyColourSpringIds.clear();
-        this._autoApplyColourSpringIds.add(springId);
-      } else {
-        this._autoApplyColourSpringIds.delete(springId);
+      this._setExclusiveAutoApplyId(this._autoApplyColourSpringIds, id, enabled);
+    }
+
+    _forEachColourChannel(id, callback) {
+      const channels = ["r", "g", "b"];
+      for (let i = 0; i < channels.length; i++) {
+        callback(this._colourSpringChannelId(id, channels[i]), channels[i], i);
+      }
+    }
+
+    _finalizeColourSpringApply(id, applyToObject) {
+      this._setColourSpringAutoApplyId(id, !!applyToObject);
+      if (applyToObject) {
+        this._applySprungColourToObject(id);
       }
     }
 
     _getSingleActiveSpringId(idSet) {
       if (!idSet || !idSet.size) return "";
       // Use the latest inserted id so new applied springs override old ones.
-      const ids = Array.from(idSet);
-      return ids[ids.length - 1] || "";
+      let activeId = "";
+      for (const id of idSet) {
+        activeId = id;
+      }
+      return activeId;
     }
 
     _normalizeSingleActiveSet(idSet) {
@@ -653,62 +852,63 @@ export default function (parentClass) {
       }
     }
 
-    _springColourToId(id, colourSpace, c1, c2, c3, applyToObject = false) {
-      const [r, g, b] = this._colourToRgb255(colourSpace, c1, c2, c3);
-      this._springToId(this._colourSpringChannelId(id, "r"), r, 0);
-      this._springToId(this._colourSpringChannelId(id, "g"), g, 0);
-      this._springToId(this._colourSpringChannelId(id, "b"), b, 0);
-
-      this._setColourSpringAutoApplyId(id, !!applyToObject);
-      if (applyToObject) {
-        this._applySprungColourToObject(id);
+    _setExclusiveAutoApplyId(idSet, id, enabled) {
+      const springId = this._normalizeSpringId(id);
+      if (enabled) {
+        // "Apply to properties" always takes ownership for this group.
+        idSet.clear();
+        idSet.add(springId);
+        return;
       }
+      idSet.delete(springId);
+    }
+
+    _springColourToId(id, colourSpace, c1, c2, c3, applyToObject = false) {
+      const values = this._colourToRgb255(colourSpace, c1, c2, c3);
+      this._forEachColourChannel(id, (channelId, _ch, index) => {
+        this._springToId(channelId, values[index], 0);
+      });
+      this._finalizeColourSpringApply(id, applyToObject);
     }
 
     _springColourFromToId(id, colourSpace, from1, from2, from3, to1, to2, to3, applyToObject = false) {
-      const [fromR, fromG, fromB] = this._colourToRgb255(colourSpace, from1, from2, from3);
-      const [toR, toG, toB] = this._colourToRgb255(colourSpace, to1, to2, to3);
+      const fromValues = this._colourToRgb255(colourSpace, from1, from2, from3);
+      const toValues = this._colourToRgb255(colourSpace, to1, to2, to3);
+      this._forEachColourChannel(id, (channelId, _ch, index) => {
+        this._springFromToId(channelId, fromValues[index], toValues[index]);
+      });
+      this._finalizeColourSpringApply(id, applyToObject);
+    }
 
-      this._springFromToId(this._colourSpringChannelId(id, "r"), fromR, toR);
-      this._springFromToId(this._colourSpringChannelId(id, "g"), fromG, toG);
-      this._springFromToId(this._colourSpringChannelId(id, "b"), fromB, toB);
-
-      this._setColourSpringAutoApplyId(id, !!applyToObject);
-      if (applyToObject) {
-        this._applySprungColourToObject(id);
-      }
+    _configureColourAlwaysSpringId(id, operation, colourSpace, c1, c2, c3, applyToObject = false) {
+      const values = this._colourToRgb255(colourSpace, c1, c2, c3);
+      this._forEachColourChannel(id, (channelId, _ch, index) => {
+        const target = values[index];
+        this._configureAlwaysSpringValueId(channelId, operation, target, 0, this._getSpringValue(channelId) || target);
+      });
+      this._finalizeColourSpringApply(id, applyToObject);
     }
 
     _setColourSpringSettingsId(id, stiffness, damping, precision) {
-      this._setStiffness(stiffness, this._colourSpringChannelId(id, "r"));
-      this._setStiffness(stiffness, this._colourSpringChannelId(id, "g"));
-      this._setStiffness(stiffness, this._colourSpringChannelId(id, "b"));
-
-      this._setDamping(damping, this._colourSpringChannelId(id, "r"));
-      this._setDamping(damping, this._colourSpringChannelId(id, "g"));
-      this._setDamping(damping, this._colourSpringChannelId(id, "b"));
-
-      this._setPrecision(precision, this._colourSpringChannelId(id, "r"));
-      this._setPrecision(precision, this._colourSpringChannelId(id, "g"));
-      this._setPrecision(precision, this._colourSpringChannelId(id, "b"));
+      this._forEachColourChannel(id, (channelId) => {
+        this._setStiffness(stiffness, channelId);
+        this._setDamping(damping, channelId);
+        this._setPrecision(precision, channelId);
+      });
     }
 
     _resetColourSpringId(id, colourSpace, c1, c2, c3, applyToObject = false) {
-      const [r, g, b] = this._colourToRgb255(colourSpace, c1, c2, c3);
-      this._resetToValueId(this._colourSpringChannelId(id, "r"), r);
-      this._resetToValueId(this._colourSpringChannelId(id, "g"), g);
-      this._resetToValueId(this._colourSpringChannelId(id, "b"), b);
-
-      this._setColourSpringAutoApplyId(id, !!applyToObject);
-      if (applyToObject) {
-        this._applySprungColourToObject(id);
-      }
+      const values = this._colourToRgb255(colourSpace, c1, c2, c3);
+      this._forEachColourChannel(id, (channelId, _ch, index) => {
+        this._resetToValueId(channelId, values[index]);
+      });
+      this._finalizeColourSpringApply(id, applyToObject);
     }
 
     _stopColourSpringId(id) {
-      this._stopAtCurrentValueId(this._colourSpringChannelId(id, "r"));
-      this._stopAtCurrentValueId(this._colourSpringChannelId(id, "g"));
-      this._stopAtCurrentValueId(this._colourSpringChannelId(id, "b"));
+      this._forEachColourChannel(id, (channelId) => {
+        this._stopAtCurrentValueId(channelId);
+      });
       this._setColourSpringAutoApplyId(id, false);
     }
 
@@ -738,15 +938,32 @@ export default function (parentClass) {
     }
 
     _isColourSpringAnimatingId(id) {
-      return this._isSpringAnimatingId(this._colourSpringChannelId(id, "r"))
-        || this._isSpringAnimatingId(this._colourSpringChannelId(id, "g"))
-        || this._isSpringAnimatingId(this._colourSpringChannelId(id, "b"));
+      let isAnimating = false;
+      this._forEachColourChannel(id, (channelId) => {
+        if (!isAnimating && this._isSpringAnimatingId(channelId)) {
+          isAnimating = true;
+        }
+      });
+      return isAnimating;
     }
 
     _hasColourSpringReachedTargetId(id) {
-      return this._hasSpringReachedTarget(this._colourSpringChannelId(id, "r"))
-        && this._hasSpringReachedTarget(this._colourSpringChannelId(id, "g"))
-        && this._hasSpringReachedTarget(this._colourSpringChannelId(id, "b"));
+      let reachedTarget = true;
+      this._forEachColourChannel(id, (channelId) => {
+        if (reachedTarget && !this._hasSpringReachedTarget(channelId)) {
+          reachedTarget = false;
+        }
+      });
+      return reachedTarget;
+    }
+
+    _getApplyTargets() {
+      return [
+        this.instance,
+        this.instance && typeof this.instance.GetWorldInfo === "function" ? this.instance.GetWorldInfo() : null,
+        this.instance ? this.instance.worldInfo : null,
+        this.instance ? this.instance._worldInfo : null,
+      ];
     }
 
     _tryApplyColour(target, methodNames, payloads) {
@@ -762,6 +979,52 @@ export default function (parentClass) {
             return true;
           } catch (_) {
             // Keep trying alternate signatures.
+          }
+        }
+      }
+
+      return false;
+    }
+
+    _tryApplyWithCache(cacheKey, targets, methodNames, payloads) {
+      const cached = this._applyMethodCache[cacheKey];
+      if (cached) {
+        // Fast path: retry the last known-good call shape first.
+        const target = targets[cached.targetIndex];
+        if (target) {
+          const fn = target[cached.methodName];
+          const args = payloads[cached.payloadIndex];
+          if (typeof fn === "function" && args !== undefined) {
+            try {
+              fn.call(target, ...args);
+              return true;
+            } catch (_) {
+              // Method or signature changed, rediscover below.
+            }
+          }
+        }
+        // Invalidate and rediscover if object surface changed.
+        this._applyMethodCache[cacheKey] = null;
+      }
+
+      // Slow path: probe available methods/signatures, then cache the first success.
+      for (let targetIndex = 0; targetIndex < targets.length; targetIndex++) {
+        const target = targets[targetIndex];
+        if (!target) continue;
+
+        for (const methodName of methodNames) {
+          const fn = target[methodName];
+          if (typeof fn !== "function") continue;
+
+          for (let payloadIndex = 0; payloadIndex < payloads.length; payloadIndex++) {
+            const args = payloads[payloadIndex];
+            try {
+              fn.call(target, ...args);
+              this._applyMethodCache[cacheKey] = { targetIndex, methodName, payloadIndex };
+              return true;
+            } catch (_) {
+              // Keep trying alternate signatures and targets.
+            }
           }
         }
       }
@@ -800,20 +1063,7 @@ export default function (parentClass) {
         [hex],
       ];
 
-      const targets = [
-        this.instance,
-        this.instance && typeof this.instance.GetWorldInfo === "function" ? this.instance.GetWorldInfo() : null,
-        this.instance ? this.instance.worldInfo : null,
-        this.instance ? this.instance._worldInfo : null,
-      ];
-
-      for (const target of targets) {
-        if (this._tryApplyColour(target, methodNames, payloads)) {
-          return true;
-        }
-      }
-
-      return false;
+      return this._tryApplyWithCache("colour", this._getApplyTargets(), methodNames, payloads);
     }
 
     _normalizeTransformSpringType(type) {
@@ -821,6 +1071,66 @@ export default function (parentClass) {
       if (value === "size" || value === "1") return "size";
       if (value === "angle" || value === "2") return "angle";
       return "position";
+    }
+
+    _getTransformChannels(type) {
+      const normalized = this._normalizeTransformSpringType(type);
+      if (normalized === "size") return ["w", "h", "d"];
+      if (normalized === "angle") return ["a"];
+      return ["x", "y", "z"];
+    }
+
+    _ensureTransformSpringsFromObjectId(type, id) {
+      const normalized = this._normalizeTransformSpringType(type);
+      if (normalized === "size") {
+        this._ensureSizeSpringsFromObject(id);
+        return;
+      }
+      if (normalized === "angle") {
+        this._ensureAngleSpringFromObject(id);
+        return;
+      }
+      this._ensurePositionSpringsFromObject(id);
+    }
+
+    _getTransformCurrentValues(type) {
+      const normalized = this._normalizeTransformSpringType(type);
+      if (normalized === "size") {
+        return [this._getObjectWidth(), this._getObjectHeight(), this._getObjectDepth()];
+      }
+      if (normalized === "angle") {
+        return [this._getObjectAngle()];
+      }
+      return [this._getObjectX(), this._getObjectY(), this._getObjectZ()];
+    }
+
+    _forEachTransformChannel(type, id, callback) {
+      const normalized = this._normalizeTransformSpringType(type);
+      const channels = this._getTransformChannels(normalized);
+      for (let i = 0; i < channels.length; i++) {
+        const channel = channels[i];
+        callback(this._transformSpringChannelId(normalized, id, channel), channel, i);
+      }
+    }
+
+    _applySprungTransformToObjectId(type, id) {
+      const normalized = this._normalizeTransformSpringType(type);
+      if (normalized === "size") {
+        return this._applySprungSizeToObject(id);
+      }
+      if (normalized === "angle") {
+        return this._applySprungAngleToObject(id);
+      }
+      return this._applySprungPositionToObject(id);
+    }
+
+    _finalizeTransformSpringApply(type, id, applyToObject) {
+      const normalized = this._normalizeTransformSpringType(type);
+      const shouldApply = !!applyToObject;
+      this._setTransformSpringAutoApplyId(normalized, id, shouldApply);
+      if (shouldApply) {
+        this._applySprungTransformToObjectId(normalized, id);
+      }
     }
 
     _getTransformAutoApplySet(type) {
@@ -831,15 +1141,8 @@ export default function (parentClass) {
     }
 
     _setTransformSpringAutoApplyId(type, id, enabled) {
-      const springId = this._normalizeSpringId(id);
       const set = this._getTransformAutoApplySet(type);
-      if (enabled) {
-        // Only one spring per transform target should drive the instance.
-        set.clear();
-        set.add(springId);
-      } else {
-        set.delete(springId);
-      }
+      this._setExclusiveAutoApplyId(set, id, enabled);
     }
 
     _transformSpringChannelId(type, id, channel) {
@@ -849,12 +1152,7 @@ export default function (parentClass) {
     }
 
     _getTransformTargets() {
-      return [
-        this.instance,
-        this.instance && typeof this.instance.GetWorldInfo === "function" ? this.instance.GetWorldInfo() : null,
-        this.instance ? this.instance.worldInfo : null,
-        this.instance ? this.instance._worldInfo : null,
-      ];
+      return this._getApplyTargets();
     }
 
     _tryGetNumericFromTarget(target, methodNames, propertyNames) {
@@ -898,12 +1196,24 @@ export default function (parentClass) {
       return this._readTransformValue(["getY", "GetY"], ["y", "_y"], 0);
     }
 
+    _getObjectZ() {
+      return this._readTransformValue(
+        ["getZElevation", "GetZElevation", "getElevation", "GetElevation", "getZ", "GetZ"],
+        ["zElevation", "elevation", "z", "_z"],
+        0,
+      );
+    }
+
     _getObjectWidth() {
       return this._readTransformValue(["getWidth", "GetWidth"], ["width", "_width"], 1);
     }
 
     _getObjectHeight() {
       return this._readTransformValue(["getHeight", "GetHeight"], ["height", "_height"], 1);
+    }
+
+    _getObjectDepth() {
+      return this._readTransformValue(["getDepth", "GetDepth"], ["depth", "_depth"], 1);
     }
 
     _getObjectAngle() {
@@ -924,14 +1234,15 @@ export default function (parentClass) {
       return false;
     }
 
-    _applyPosition(x, y) {
+    _applyPosition(x, y, z = null) {
       const targets = this._getTransformTargets();
-      const payloads = [[x, y], [[x, y]]];
-      const methodNames = ["setPosition", "SetPosition", "setXY", "SetXY"];
-      for (const target of targets) {
-        if (this._tryApplyColour(target, methodNames, payloads)) {
-          return true;
-        }
+      const hasZ = z !== null && z !== undefined;
+      const payloads = hasZ ? [[x, y, z], [[x, y, z]], [x, y], [[x, y]]] : [[x, y], [[x, y]]];
+      const methodNames = hasZ
+        ? ["setPosition", "SetPosition", "setXYZ", "SetXYZ", "setXY", "SetXY"]
+        : ["setPosition", "SetPosition", "setXY", "SetXY"];
+      if (this._tryApplyWithCache(hasZ ? "positionXYZ" : "positionXY", targets, methodNames, payloads)) {
+        return true;
       }
 
       let updated = false;
@@ -939,6 +1250,7 @@ export default function (parentClass) {
         if (!target) continue;
         const setX = target.setX || target.SetX;
         const setY = target.setY || target.SetY;
+        const setZ = target.setZ || target.SetZ || target.setZElevation || target.SetZElevation || target.setElevation || target.SetElevation;
         try {
           if (typeof setX === "function") {
             setX.call(target, x);
@@ -948,26 +1260,37 @@ export default function (parentClass) {
             setY.call(target, y);
             updated = true;
           }
+          if (hasZ && typeof setZ === "function") {
+            setZ.call(target, z);
+            updated = true;
+          }
           if (updated) return true;
         } catch (_) {
           // Continue with fallback targets.
         }
       }
 
-      return this._setTransformProperty("x", x) || this._setTransformProperty("y", y);
+      let didSet = this._setTransformProperty("x", x) || this._setTransformProperty("y", y);
+      if (hasZ) {
+        didSet = this._setTransformProperty("zElevation", z)
+          || this._setTransformProperty("elevation", z)
+          || this._setTransformProperty("z", z)
+          || didSet;
+      }
+      return didSet;
     }
 
-    _applySize(width, height) {
+    _applySize(width, height, depth = null) {
       const w = Math.max(0, Number(width) || 0);
       const h = Math.max(0, Number(height) || 0);
+      const hasDepth = depth !== null && depth !== undefined;
+      const d = Math.max(0, Number(depth) || 0);
 
       const targets = this._getTransformTargets();
-      const payloads = [[w, h], [[w, h]]];
-      const methodNames = ["setSize", "SetSize"];
-      for (const target of targets) {
-        if (this._tryApplyColour(target, methodNames, payloads)) {
-          return true;
-        }
+      const payloads = hasDepth ? [[w, h, d], [[w, h, d]], [w, h], [[w, h]]] : [[w, h], [[w, h]]];
+      const methodNames = hasDepth ? ["setSize", "SetSize", "setWHD", "SetWHD"] : ["setSize", "SetSize"];
+      if (this._tryApplyWithCache(hasDepth ? "sizeWHD" : "sizeWH", targets, methodNames, payloads)) {
+        return true;
       }
 
       let updated = false;
@@ -975,6 +1298,7 @@ export default function (parentClass) {
         if (!target) continue;
         const setWidth = target.setWidth || target.SetWidth;
         const setHeight = target.setHeight || target.SetHeight;
+        const setDepth = target.setDepth || target.SetDepth;
         try {
           if (typeof setWidth === "function") {
             setWidth.call(target, w);
@@ -984,13 +1308,21 @@ export default function (parentClass) {
             setHeight.call(target, h);
             updated = true;
           }
+          if (hasDepth && typeof setDepth === "function") {
+            setDepth.call(target, d);
+            updated = true;
+          }
           if (updated) return true;
         } catch (_) {
           // Continue with fallback targets.
         }
       }
 
-      return this._setTransformProperty("width", w) || this._setTransformProperty("height", h);
+      let didSet = this._setTransformProperty("width", w) || this._setTransformProperty("height", h);
+      if (hasDepth) {
+        didSet = this._setTransformProperty("depth", d) || didSet;
+      }
+      return didSet;
     }
 
     _applyAngle(angle) {
@@ -999,10 +1331,8 @@ export default function (parentClass) {
       const payloads = [[a]];
       const methodNames = ["setAngle", "SetAngle"];
 
-      for (const target of targets) {
-        if (this._tryApplyColour(target, methodNames, payloads)) {
-          return true;
-        }
+      if (this._tryApplyWithCache("angle", targets, methodNames, payloads)) {
+        return true;
       }
 
       return this._setTransformProperty("angle", a);
@@ -1011,23 +1341,29 @@ export default function (parentClass) {
     _ensurePositionSpringsFromObject(id) {
       const xId = this._transformSpringChannelId("position", id, "x");
       const yId = this._transformSpringChannelId("position", id, "y");
-      if (this._getSpring(xId, false) && this._getSpring(yId, false)) return;
+      const zId = this._transformSpringChannelId("position", id, "z");
+      if (this._getSpring(xId, false) && this._getSpring(yId, false) && this._getSpring(zId, false)) return;
 
       const x = this._getObjectX();
       const y = this._getObjectY();
+      const z = this._getObjectZ();
       this._resetToValueId(xId, x);
       this._resetToValueId(yId, y);
+      this._resetToValueId(zId, z);
     }
 
     _ensureSizeSpringsFromObject(id) {
       const wId = this._transformSpringChannelId("size", id, "w");
       const hId = this._transformSpringChannelId("size", id, "h");
-      if (this._getSpring(wId, false) && this._getSpring(hId, false)) return;
+      const dId = this._transformSpringChannelId("size", id, "d");
+      if (this._getSpring(wId, false) && this._getSpring(hId, false) && this._getSpring(dId, false)) return;
 
       const width = this._getObjectWidth();
       const height = this._getObjectHeight();
+      const depth = this._getObjectDepth();
       this._resetToValueId(wId, width);
       this._resetToValueId(hId, height);
+      this._resetToValueId(dId, depth);
     }
 
     _ensureAngleSpringFromObject(id) {
@@ -1036,101 +1372,150 @@ export default function (parentClass) {
       this._resetToValueId(aId, this._getObjectAngle());
     }
 
-    _springPositionToId(id, x, y, useForInstance = true) {
+    _springPositionToId(id, x, y, z = null, useForInstance = true) {
+      if (typeof z === "boolean") {
+        useForInstance = z;
+        z = null;
+      }
       this._ensurePositionSpringsFromObject(id);
       this._springToId(this._transformSpringChannelId("position", id, "x"), Number(x), 0);
       this._springToId(this._transformSpringChannelId("position", id, "y"), Number(y), 0);
-      this._setTransformSpringAutoApplyId("position", id, !!useForInstance);
-      if (useForInstance) {
-        this._applySprungPositionToObject(id);
-      }
+      this._springToId(this._transformSpringChannelId("position", id, "z"), Number(z ?? this._getObjectZ()), 0);
+      this._finalizeTransformSpringApply("position", id, useForInstance);
     }
 
-    _springPositionFromToId(id, fromX, fromY, toX, toY, useForInstance = true) {
+    _springPositionFromToId(id, fromX, fromY, fromZ, toX, toY, toZ, useForInstance = true) {
+      if (typeof toZ === "boolean") {
+        useForInstance = toZ;
+        toZ = this._getObjectZ();
+        fromZ = this._getObjectZ();
+      }
       this._springFromToId(this._transformSpringChannelId("position", id, "x"), Number(fromX), Number(toX));
       this._springFromToId(this._transformSpringChannelId("position", id, "y"), Number(fromY), Number(toY));
-      this._setTransformSpringAutoApplyId("position", id, !!useForInstance);
-      if (useForInstance) {
-        this._applySprungPositionToObject(id);
-      }
+      this._springFromToId(this._transformSpringChannelId("position", id, "z"), Number(fromZ), Number(toZ));
+      this._finalizeTransformSpringApply("position", id, useForInstance);
     }
 
-    _springSizeToId(id, width, height, useForInstance = true) {
+    _springSizeToId(id, width, height, depth = null, useForInstance = true) {
+      if (typeof depth === "boolean") {
+        useForInstance = depth;
+        depth = null;
+      }
       this._ensureSizeSpringsFromObject(id);
       this._springToId(this._transformSpringChannelId("size", id, "w"), Number(width), 0);
       this._springToId(this._transformSpringChannelId("size", id, "h"), Number(height), 0);
-      this._setTransformSpringAutoApplyId("size", id, !!useForInstance);
-      if (useForInstance) {
-        this._applySprungSizeToObject(id);
-      }
+      this._springToId(this._transformSpringChannelId("size", id, "d"), Number(depth ?? this._getObjectDepth()), 0);
+      this._finalizeTransformSpringApply("size", id, useForInstance);
     }
 
-    _springSizeFromToId(id, fromW, fromH, toW, toH, useForInstance = true) {
+    _springSizeFromToId(id, fromW, fromH, fromD, toW, toH, toD, useForInstance = true) {
+      if (typeof toD === "boolean") {
+        useForInstance = toD;
+        toD = this._getObjectDepth();
+        fromD = this._getObjectDepth();
+      }
       this._springFromToId(this._transformSpringChannelId("size", id, "w"), Number(fromW), Number(toW));
       this._springFromToId(this._transformSpringChannelId("size", id, "h"), Number(fromH), Number(toH));
-      this._setTransformSpringAutoApplyId("size", id, !!useForInstance);
-      if (useForInstance) {
-        this._applySprungSizeToObject(id);
-      }
+      this._springFromToId(this._transformSpringChannelId("size", id, "d"), Number(fromD), Number(toD));
+      this._finalizeTransformSpringApply("size", id, useForInstance);
     }
 
     _springAngleToId(id, angle, mode = 1, useForInstance = true) {
       this._ensureAngleSpringFromObject(id);
       this._springToId(this._transformSpringChannelId("angle", id, "a"), Number(angle), Number(mode));
-      this._setTransformSpringAutoApplyId("angle", id, !!useForInstance);
-      if (useForInstance) {
-        this._applySprungAngleToObject(id);
-      }
+      this._finalizeTransformSpringApply("angle", id, useForInstance);
     }
 
     _springAngleFromToId(id, fromAngle, toAngle, useForInstance = true) {
       this._springFromToAngleId(this._transformSpringChannelId("angle", id, "a"), Number(fromAngle), Number(toAngle));
-      this._setTransformSpringAutoApplyId("angle", id, !!useForInstance);
-      if (useForInstance) {
-        this._applySprungAngleToObject(id);
-      }
+      this._finalizeTransformSpringApply("angle", id, useForInstance);
+    }
+
+    _setTransformPositionStartValueId(id, x, y, z = 0) {
+      this._resetToValueId(this._transformSpringChannelId("position", id, "x"), Number(x));
+      this._resetToValueId(this._transformSpringChannelId("position", id, "y"), Number(y));
+      this._resetToValueId(this._transformSpringChannelId("position", id, "z"), Number(z));
+    }
+
+    _setTransformPositionEndValueId(id, x, y, z = 0) {
+      this._ensurePositionSpringsFromObject(id);
+      this._getSpring(this._transformSpringChannelId("position", id, "x"), true).to = Number(x);
+      this._getSpring(this._transformSpringChannelId("position", id, "y"), true).to = Number(y);
+      this._getSpring(this._transformSpringChannelId("position", id, "z"), true).to = Number(z);
+    }
+
+    _setTransformSizeStartValueId(id, width, height) {
+      this._resetToValueId(this._transformSpringChannelId("size", id, "w"), Number(width));
+      this._resetToValueId(this._transformSpringChannelId("size", id, "h"), Number(height));
+      this._resetToValueId(this._transformSpringChannelId("size", id, "d"), 0);
+    }
+
+    _setTransformSizeEndValueId(id, width, height) {
+      this._ensureSizeSpringsFromObject(id);
+      this._getSpring(this._transformSpringChannelId("size", id, "w"), true).to = Number(width);
+      this._getSpring(this._transformSpringChannelId("size", id, "h"), true).to = Number(height);
+      this._getSpring(this._transformSpringChannelId("size", id, "d"), true).to = 0;
+    }
+
+    _setTransformAngleStartValueId(id, angle) {
+      this._resetToValueId(this._transformSpringChannelId("angle", id, "a"), Number(angle));
+    }
+
+    _setTransformAngleEndValueId(id, angle) {
+      this._ensureAngleSpringFromObject(id);
+      this._getSpring(this._transformSpringChannelId("angle", id, "a"), true).to = Number(angle);
+    }
+
+    _configureTransformAlwaysSpringId(type, id, operation, targetA, targetB, targetC = 0, mode = 1, applyToObject = false) {
+      const normalized = this._normalizeTransformSpringType(type);
+      const targets = normalized === "angle"
+        ? [Number(targetA)]
+        : [Number(targetA), Number(targetB), Number(targetC)];
+      const currentValues = this._getTransformCurrentValues(normalized);
+
+      this._ensureTransformSpringsFromObjectId(normalized, id);
+      // Keep channel behavior data-driven so updates only touch one transform map.
+      this._forEachTransformChannel(normalized, id, (channelId, _channel, index) => {
+        this._configureAlwaysSpringValueId(
+          channelId,
+          operation,
+          targets[index],
+          normalized === "angle" ? Number(mode) : 0,
+          currentValues[index],
+        );
+      });
+
+      this._finalizeTransformSpringApply(normalized, id, applyToObject);
     }
 
     _stopTransformSpringId(type, id) {
       const normalized = this._normalizeTransformSpringType(type);
-      if (normalized === "position") {
-        this._stopAtCurrentValueId(this._transformSpringChannelId("position", id, "x"));
-        this._stopAtCurrentValueId(this._transformSpringChannelId("position", id, "y"));
-      } else if (normalized === "size") {
-        this._stopAtCurrentValueId(this._transformSpringChannelId("size", id, "w"));
-        this._stopAtCurrentValueId(this._transformSpringChannelId("size", id, "h"));
-      } else {
-        this._stopAtCurrentValueId(this._transformSpringChannelId("angle", id, "a"));
-      }
+      this._forEachTransformChannel(normalized, id, (channelId) => {
+        this._stopAtCurrentValueId(channelId);
+      });
 
       this._setTransformSpringAutoApplyId(normalized, id, false);
     }
 
     _setTransformSpringSettingsId(type, id, stiffness, damping, precision) {
       const normalized = this._normalizeTransformSpringType(type);
-      if (normalized === "position") {
-        this._setStiffness(stiffness, this._transformSpringChannelId("position", id, "x"));
-        this._setStiffness(stiffness, this._transformSpringChannelId("position", id, "y"));
-        this._setDamping(damping, this._transformSpringChannelId("position", id, "x"));
-        this._setDamping(damping, this._transformSpringChannelId("position", id, "y"));
-        this._setPrecision(precision, this._transformSpringChannelId("position", id, "x"));
-        this._setPrecision(precision, this._transformSpringChannelId("position", id, "y"));
-        return;
-      }
+      this._forEachTransformChannel(normalized, id, (channelId) => {
+        this._setStiffness(stiffness, channelId);
+        this._setDamping(damping, channelId);
+        this._setPrecision(precision, channelId);
+      });
+    }
 
-      if (normalized === "size") {
-        this._setStiffness(stiffness, this._transformSpringChannelId("size", id, "w"));
-        this._setStiffness(stiffness, this._transformSpringChannelId("size", id, "h"));
-        this._setDamping(damping, this._transformSpringChannelId("size", id, "w"));
-        this._setDamping(damping, this._transformSpringChannelId("size", id, "h"));
-        this._setPrecision(precision, this._transformSpringChannelId("size", id, "w"));
-        this._setPrecision(precision, this._transformSpringChannelId("size", id, "h"));
-        return;
-      }
+    _addToTransformSpringVelocityId(type, id, velocityA, velocityB = 0, velocityC = 0) {
+      const normalized = this._normalizeTransformSpringType(type);
+      const velocities = normalized === "angle"
+        ? [Number(velocityA)]
+        : [Number(velocityA), Number(velocityB), Number(velocityC)];
 
-      this._setStiffness(stiffness, this._transformSpringChannelId("angle", id, "a"));
-      this._setDamping(damping, this._transformSpringChannelId("angle", id, "a"));
-      this._setPrecision(precision, this._transformSpringChannelId("angle", id, "a"));
+      this._ensureTransformSpringsFromObjectId(normalized, id);
+      this._forEachTransformChannel(normalized, id, (channelId, _channel, index) => {
+        this._addToVelocityId(channelId, velocities[index]);
+      });
     }
 
     _getSprungPositionX(id) {
@@ -1141,6 +1526,10 @@ export default function (parentClass) {
       return this._getSpringValue(this._transformSpringChannelId("position", id, "y"));
     }
 
+    _getSprungPositionZ(id) {
+      return this._getSpringValue(this._transformSpringChannelId("position", id, "z"));
+    }
+
     _getSprungWidth(id) {
       return this._getSpringValue(this._transformSpringChannelId("size", id, "w"));
     }
@@ -1149,16 +1538,20 @@ export default function (parentClass) {
       return this._getSpringValue(this._transformSpringChannelId("size", id, "h"));
     }
 
+    _getSprungDepth(id) {
+      return this._getSpringValue(this._transformSpringChannelId("size", id, "d"));
+    }
+
     _getSprungAngle(id) {
       return this._getSpringValue(this._transformSpringChannelId("angle", id, "a"));
     }
 
     _applySprungPositionToObject(id) {
-      return this._applyPosition(this._getSprungPositionX(id), this._getSprungPositionY(id));
+      return this._applyPosition(this._getSprungPositionX(id), this._getSprungPositionY(id), this._getSprungPositionZ(id));
     }
 
     _applySprungSizeToObject(id) {
-      return this._applySize(this._getSprungWidth(id), this._getSprungHeight(id));
+      return this._applySize(this._getSprungWidth(id), this._getSprungHeight(id), this._getSprungDepth(id));
     }
 
     _applySprungAngleToObject(id) {
@@ -1167,28 +1560,24 @@ export default function (parentClass) {
 
     _isTransformSpringAnimatingId(type, id) {
       const normalized = this._normalizeTransformSpringType(type);
-      if (normalized === "position") {
-        return this._isSpringAnimatingId(this._transformSpringChannelId("position", id, "x"))
-          || this._isSpringAnimatingId(this._transformSpringChannelId("position", id, "y"));
-      }
-      if (normalized === "size") {
-        return this._isSpringAnimatingId(this._transformSpringChannelId("size", id, "w"))
-          || this._isSpringAnimatingId(this._transformSpringChannelId("size", id, "h"));
-      }
-      return this._isSpringAnimatingId(this._transformSpringChannelId("angle", id, "a"));
+      let isAnimating = false;
+      this._forEachTransformChannel(normalized, id, (channelId) => {
+        if (!isAnimating && this._isSpringAnimatingId(channelId)) {
+          isAnimating = true;
+        }
+      });
+      return isAnimating;
     }
 
     _hasTransformSpringReachedTargetId(type, id) {
       const normalized = this._normalizeTransformSpringType(type);
-      if (normalized === "position") {
-        return this._hasSpringReachedTarget(this._transformSpringChannelId("position", id, "x"))
-          && this._hasSpringReachedTarget(this._transformSpringChannelId("position", id, "y"));
-      }
-      if (normalized === "size") {
-        return this._hasSpringReachedTarget(this._transformSpringChannelId("size", id, "w"))
-          && this._hasSpringReachedTarget(this._transformSpringChannelId("size", id, "h"));
-      }
-      return this._hasSpringReachedTarget(this._transformSpringChannelId("angle", id, "a"));
+      let reachedTarget = true;
+      this._forEachTransformChannel(normalized, id, (channelId) => {
+        if (reachedTarget && !this._hasSpringReachedTarget(channelId)) {
+          reachedTarget = false;
+        }
+      });
+      return reachedTarget;
     }
 
     _hasMeshApi() {
@@ -2075,10 +2464,78 @@ export default function (parentClass) {
       return this._springs.size;
     }
 
+    _getActiveSpringCount() {
+      let count = 0;
+      for (const spring of this._springs.values()) {
+        if (spring.isAnimating && !spring.isPaused) {
+          count++;
+        }
+      }
+      return count;
+    }
+
+    _getConstantSpringCount() {
+      let count = 0;
+      for (const spring of this._springs.values()) {
+        if (spring.alwaysSpringEnabled) {
+          count++;
+        }
+      }
+      return count;
+    }
+
+    _debugLogActiveSprings() {
+      const rows = [];
+
+      for (const springId of this._activeSpringIds) {
+        const spring = this._getSpring(springId, false);
+        if (!spring) {
+          continue;
+        }
+
+        rows.push({
+          id: spring.id,
+          value: spring.smoothValue,
+          target: spring.to,
+          velocity: spring.velocity,
+          animating: spring.isAnimating,
+          paused: spring.isPaused,
+          constant: spring.alwaysSpringEnabled,
+        });
+      }
+
+      if (!rows.length) {
+        console.info("[" + name + "] Active springs: none");
+        return;
+      }
+
+      rows.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+      console.groupCollapsed("[" + name + "] Active springs (" + rows.length + ")");
+      console.table(rows);
+      console.groupEnd();
+    }
+
+    _getPausedSpringCount() {
+      let count = 0;
+      for (const spring of this._springs.values()) {
+        if (spring.isPaused) {
+          count++;
+        }
+      }
+      return count;
+    }
+
     _getSpringIdAt(index) {
       index = Math.floor(Number(index));
       if (index < 0 || index >= this._springs.size) return "";
-      return Array.from(this._springs.keys())[index] ?? "";
+      let i = 0;
+      for (const springId of this._springs.keys()) {
+        if (i === index) {
+          return springId;
+        }
+        i++;
+      }
+      return "";
     }
 
     _getLastSpringId() {
@@ -2228,6 +2685,7 @@ export default function (parentClass) {
           value: spring.value,
           velocity: spring.velocity,
           isAnimating: spring.isAnimating,
+          isPaused: !!spring.isPaused,
           smoothValue: spring.smoothValue,
           time: spring.time,
           steps: spring.steps,
@@ -2309,6 +2767,7 @@ export default function (parentClass) {
           spring.value = Number(savedSpring.value ?? 0);
           spring.velocity = Number(savedSpring.velocity ?? 0);
           spring.isAnimating = !!savedSpring.isAnimating;
+          spring.isPaused = !!savedSpring.isPaused;
           spring.smoothValue = Number(savedSpring.smoothValue ?? spring.value);
           spring.time = Number(savedSpring.time ?? 0);
           spring.steps = Number(savedSpring.steps ?? 0);
@@ -2324,6 +2783,7 @@ export default function (parentClass) {
       if (!this._springs.has(this._defaultSpringId)) {
         this._createSpring(this._defaultSpringId);
       }
+      this._rebuildActiveSpringIds();
       if (this._meshCols > 1 && this._meshRows > 1 && this._meshPoints.length === this._meshCols * this._meshRows) {
         if (this._ensureMeshSupport(false)) {
           this._meshCreate(this._meshCols, this._meshRows);
@@ -2358,14 +2818,35 @@ export default function (parentClass) {
     }
 
     _getDebuggerProperties() {
-      const spring = this._getSpring(this._defaultSpringId, true);
+      const focusSpringId = this._normalizeSpringId(this._lastTriggeredSpringId || this._defaultSpringId);
+      const spring = this._getSpring(focusSpringId, false) || this._getSpring(this._defaultSpringId, true);
+      const activeIds = Array.from(this._activeSpringIds).sort();
+      const toDebugList = (values, fallback = "-") => {
+        if (!values || !values.length) {
+          return fallback;
+        }
+        return values.join(", ");
+      };
+
+      const positionAutoIds = Array.from(this._autoApplyTransformPositionSpringIds);
+      const sizeAutoIds = Array.from(this._autoApplyTransformSizeSpringIds);
+      const angleAutoIds = Array.from(this._autoApplyTransformAngleSpringIds);
+      const colourAutoIds = Array.from(this._autoApplyColourSpringIds);
+
       return [
         {
           title: "$" + this.behaviorType.name,
           properties: [
             { name: "$isEnabled", value: this._isEnabled },
-            { name: "$springCount", value: this._springs.size },
             { name: "$defaultSpringId", value: this._defaultSpringId },
+            { name: "$springCount", value: this._springs.size },
+            { name: "$Playing/Active Springs", value: this._getActiveSpringCount() },
+            { name: "$Constant Springs", value: this._getConstantSpringCount() },
+            { name: "$Paused Springs", value: this._getPausedSpringCount() },
+            { name: "$Active Spring IDs", value: toDebugList(activeIds) },
+            { name: "$focusSpringId", value: spring.id },
+            { name: "$Action Queues", value: this._springActionQueueById.size },
+            { name: "$Completion Waiters", value: this._springCompletionWaiters.size },
             { name: "$isAnimating", value: spring.isAnimating },
             { name: "$value", value: spring.value, onedit: v => { spring.value = +v; spring.smoothValue = +v; spring.prevValue = +v; } },
             { name: "$from", value: spring.from },
@@ -2376,6 +2857,17 @@ export default function (parentClass) {
             { name: "$precision", value: this._precision, onedit: v => this._precision = Math.max(0.0001, +v) },
             { name: "$alwaysSpring", value: spring.alwaysSpringEnabled },
             { name: "$lastSpringId", value: this._lastTriggeredSpringId },
+            { name: "$lastStartedSpringId", value: this._lastStartedSpringId },
+            { name: "$lastCompletedSpringId", value: this._lastCompletedSpringId },
+          ]
+        },
+        {
+          title: "$" + this.behaviorType.name + " - Auto Apply",
+          properties: [
+            { name: "$Colour Owner", value: toDebugList(colourAutoIds) },
+            { name: "$Position Owner", value: toDebugList(positionAutoIds) },
+            { name: "$Size Owner", value: toDebugList(sizeAutoIds) },
+            { name: "$Angle Owner", value: toDebugList(angleAutoIds) },
           ]
         },
         {
@@ -2383,6 +2875,12 @@ export default function (parentClass) {
           properties: [
             { name: "$enabled", value: this._meshEnabled, onedit: v => this._meshEnabled = (v === "true") },
             { name: "$animating", value: this._meshAnimating },
+            { name: "$swayEnabled", value: this._meshSwayEnabled },
+            { name: "$swayAngle", value: this._meshSwayAngle },
+            { name: "$swayStrength", value: this._meshSwayStrength },
+            { name: "$swayWavelength", value: this._meshSwayWavelength },
+            { name: "$swaySpeed", value: this._meshSwaySpeed },
+            { name: "$autoGrid", value: this._meshAutoGridCols + "×" + this._meshAutoGridRows },
             { name: "$Mesh Grid", value: this._meshCols + "×" + this._meshRows },
             { name: "$energy", value: this._meshEnergy },
             { name: "$stiffness", value: this._meshStiffness, onedit: v => this._meshStiffness = Math.max(0.001, +v) },

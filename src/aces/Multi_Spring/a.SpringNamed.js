@@ -1,7 +1,7 @@
 export const config = {
-  listName: "Spring named",
+  listName: "Start: Named spring",
   displayText: "Spring {0} ({1}) from {2} to {3} (mode: {4})",
-  description: "Combined spring action for from-to and current-to-target workflows.",
+  description: "Spring a named value from a start point to a target. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for the spring.", type: "string", initialValue: '"main"' },
     {
@@ -29,17 +29,19 @@ export const config = {
       ],
     },
   ],
+  isAsync: true,
 };
 
-export default function (springId, startMode, from, to, mode) {
-  if (startMode === 1) {
-    if (mode === 1) {
-      this._springFromToAngleId(springId, from, to);
+export default async function (springId, startMode, from, to, mode) {
+  await this._runSpringActionWithOptionalWait(springId, true, () => {
+    if (startMode === 1) {
+      if (mode === 1) {
+        this._springFromToAngleId(springId, from, to);
+        return;
+      }
+      this._springFromToId(springId, from, to);
       return;
     }
-    this._springFromToId(springId, from, to);
-    return;
-  }
-
-  this._springToId(springId, to, mode);
+    this._springToId(springId, to, mode);
+  });
 }

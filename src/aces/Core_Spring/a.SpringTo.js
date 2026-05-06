@@ -1,10 +1,11 @@
 export const expose = false;
 
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
+  isAsync: true,
   listName: "Spring to",
-  displayText: "Spring to {0} (mode: {1})",
-  description: "Deprecated. Use 'Spring to' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Spring to {0} (mode: {1})",
+  description: "Deprecated. Use 'Start: Named spring' in the Multi Spring category instead.",
   params: [
     { id: "to", name: "To", desc: "Target value.", type: "number", initialValue: "100" },
     {
@@ -18,6 +19,8 @@ export const config = {
   ],
 };
 
-export default function (to, mode) {
-  this._springTo(to, mode);
+export default async function (to, mode) {
+  await this._runSpringActionWithOptionalWait(this._defaultSpringId, true, () => {
+    this._springTo(to, mode);
+  });
 }

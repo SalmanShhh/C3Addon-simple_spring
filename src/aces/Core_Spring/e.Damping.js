@@ -1,3 +1,3 @@
-export const config = { deprecated: true, returnType: "number", description: "Deprecated. Use SpringDamping(\"id\") in the Multi Spring category instead.", params: [] };
+export const config = { isDeprecated: true, returnType: "number", description: "Deprecated. Use the Multi Spring category expression SpringDamping(\"id\") instead.", params: [] };
 
 export default function () { return this._getDamping(); }

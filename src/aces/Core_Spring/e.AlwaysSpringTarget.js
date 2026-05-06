@@ -1,3 +1,3 @@
-export const config = { deprecated: true, returnType: "number", description: "Deprecated. There is no direct Multi Spring replacement — always spring target is managed via 'Set always spring' and 'Set always spring target' actions.", params: [] };
+export const config = { isDeprecated: true, returnType: "number", description: "Deprecated. There is no direct Multi Spring expression replacement. Use 'Constant: Set spring' in the Multi Spring category to manage the target instead.", params: [] };
 
 export default function () { return this._getAlwaysSpringTarget(); }

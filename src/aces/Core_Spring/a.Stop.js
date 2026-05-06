@@ -1,8 +1,8 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "Stop at current value",
-  displayText: "Stop spring at current value",
-  description: "Deprecated. Use 'Stop spring' in the Multi Spring category instead.",
+  displayText: "(DEPRECATED) Stop spring at current value",
+  description: "Deprecated. Use the Multi Spring Playback category to stop or clear a named spring instead.",
   params: [],
 };
 

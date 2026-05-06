@@ -1,7 +1,8 @@
 export const config = {
-  listName: "Spring colour",
-  displayText: "Spring colour {0} ({2}) from ({3}, {4}, {5}) to ({6}, {7}, {8}) in {1} (use for instance: {9})",
-  description: "Combined colour spring action for current-to-target or from-to workflows, with instance toggle.",
+  listName: "Start: Colour spring",
+  displayText: "Spring colour {0} ({2}) from ({3}, {4}, {5}) to ({6}, {7}, {8}) in {1}",
+  description: "Combined colour spring action for current-to-target or from-to workflows without applying to the object.",
+  isAsync: true,
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for the colour spring.", type: "string", initialValue: '"main"' },
     {
@@ -33,26 +34,15 @@ export const config = {
     { id: "to1", name: "To Channel 1", desc: "RGB: Red, HSL/HSV: Hue.", type: "number", initialValue: "255" },
     { id: "to2", name: "To Channel 2", desc: "RGB: Green, HSL/HSV: Saturation.", type: "number", initialValue: "255" },
     { id: "to3", name: "To Channel 3", desc: "RGB: Blue, HSL: Lightness, HSV: Value.", type: "number", initialValue: "255" },
-    {
-      id: "useForInstance",
-      name: "Use For Instance",
-      desc: "Yes applies the sprung colour to the object each tick. No keeps it expression-only.",
-      type: "combo",
-      initialValue: "no",
-      items: [
-        { no: "No" },
-        { yes: "Yes" },
-      ],
-    },
   ],
 };
 
-export default function (springId, colourSpace, startMode, from1, from2, from3, to1, to2, to3, useForInstance) {
-  const applyToInstance = useForInstance === 1;
-  if (startMode === 1) {
-    this._springColourFromToId(springId, colourSpace, from1, from2, from3, to1, to2, to3, applyToInstance);
-    return;
-  }
-
-  this._springColourToId(springId, colourSpace, to1, to2, to3, applyToInstance);
+export default async function (springId, colourSpace, startMode, from1, from2, from3, to1, to2, to3) {
+  await this._runSpringActionWithOptionalWait(springId, true, () => {
+    if (startMode === 1) {
+      this._springColourFromToId(springId, colourSpace, from1, from2, from3, to1, to2, to3, false);
+      return;
+    }
+    this._springColourToId(springId, colourSpace, to1, to2, to3, false);
+  });
 }

@@ -1,7 +1,7 @@
 export const config = {
-  deprecated: true,
+  isDeprecated: true,
   listName: "On stopped",
-  displayText: "On stopped",
+  displayText: "(DEPRECATED) On stopped",
   description: "Deprecated. Use 'On spring stopped' in the Multi Spring category instead.",
   isTrigger: true,
   params: [],
