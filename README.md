@@ -1,33 +1,15 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics with multiple named springs per behavior instance, plus object-level mesh effects.</i> <br>
-### Version 1.6.1.0
+### Version 1.6.2.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.6.1.0.c3addon/salmanshh_simple_spring-1.6.1.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.6.2.0.c3addon/salmanshh_simple_spring-1.6.2.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.6.1.0
-**Added:**
-- Added  (Async) "Wait for previous actions" support for Spring Actions so they can be sequenced similar to the Tween Behaviour.
-- Dedicated playback category
-- Separate instance-applying spring ACEs for colour, transform XYZ, and transform angle, instead of using a toggle inside the main start ACEs.
-- New constant spring ACEs for Colour Spring and Transform Spring.
-- Add ACEs for Applying Velocity to Spring Transform Categories (Position, Size, Angle, Value.)
-- Updated Debugger for new spring system.
-- Debug ACE for logging all the active springs in browser log.
-
-**Changed:**
-- Updated the instance-applying ACE wording from "To Object" / "on object" to "To Properties".
-- Renamed active ACEs with purpose-based prefixes such as "Start":, "Stop:", "Reset:", "Snap:", "Settings:", "Velocity:", "Constant:", "Apply:", and "Manage:" to improve sorting and discoverability.
-- Reorganized active spring ACEs into clearer folder-based categories so playback actions show up separately in Construct.
-
-
+#### What's New in 1.6.2.0
 **Fixed:**
-- Correctly depecrated old Spring ACEs
-- Removed the mixed “apply to instance” parameter pattern from active spring start ACEs, which made the action picker harder to scan.
-- Brought deprecated spring start ACEs in line with the newer async sequencing behavior for legacy event sheets.
-- Corrected deprecated ACE authoring to use the proper isDeprecated flag expected by Construct.
+- Fix the Deprecated ACEs not working.
 
 <sub>[View full changelog](#changelog)</sub>
 
@@ -226,6 +208,12 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 1.6.2.0
+
+**Fixed:**
+- Fix the Deprecated ACEs not working.
+---
 
 ### Version 1.6.1.0
 

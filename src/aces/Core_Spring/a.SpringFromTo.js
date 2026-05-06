@@ -1,6 +1,5 @@
 export const config = {
   isDeprecated: true,
-  isAsync: true,
   listName: "Spring from/to",
   displayText: "(DEPRECATED) Spring from {0} to {1}",
   description: "Deprecated. Use 'Start: Named spring' in the Multi Spring category instead.",
@@ -10,8 +9,6 @@ export const config = {
   ],
 };
 
-export default async function (from, to) {
-  await this._runSpringActionWithOptionalWait(this._defaultSpringId, true, () => {
-    this._springFromTo(from, to);
-  });
+export default function (from, to) {
+  this._springFromTo(from, to);
 }

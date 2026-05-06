@@ -365,8 +365,8 @@
                 "name": "Mode",
                 "desc": "Value: spring a plain number. Angle: take the shortest rotational path (handles 360° wrapping).",
                 "items": {
-                  "value": "Value",
-                  "angle": "Angle"
+                  "0": "Value",
+                  "1": "Angle"
                 }
               }
             }

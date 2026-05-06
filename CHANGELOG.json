@@ -58,5 +58,10 @@
     "added": "- Added  (Async) \"Wait for previous actions\" support for Spring Actions so they can be sequenced similar to the Tween Behaviour.\n- Dedicated playback category\n- Separate instance-applying spring ACEs for colour, transform XYZ, and transform angle, instead of using a toggle inside the main start ACEs.\n- New constant spring ACEs for Colour Spring and Transform Spring.\n- Add ACEs for Applying Velocity to Spring Transform Categories (Position, Size, Angle, Value.)\n- Updated Debugger for new spring system.\n- Debug ACE for logging all the active springs in browser log.",
     "changed": "- Updated the instance-applying ACE wording from \"To Object\" / \"on object\" to \"To Properties\".\n- Renamed active ACEs with purpose-based prefixes such as \"Start\":, \"Stop:\", \"Reset:\", \"Snap:\", \"Settings:\", \"Velocity:\", \"Constant:\", \"Apply:\", and \"Manage:\" to improve sorting and discoverability.\n- Reorganized active spring ACEs into clearer folder-based categories so playback actions show up separately in Construct.\n",
     "fixed": "- Correctly depecrated old Spring ACEs\n- Removed the mixed “apply to instance” parameter pattern from active spring start ACEs, which made the action picker harder to scan.\n- Brought deprecated spring start ACEs in line with the newer async sequencing behavior for legacy event sheets.\n- Corrected deprecated ACE authoring to use the proper isDeprecated flag expected by Construct."
+  },
+  "1.6.2.0": {
+    "added": "",
+    "changed": "",
+    "fixed": "- Fix the Deprecated ACEs not working."
   }
 }

@@ -1,6 +1,5 @@
 export const config = {
   isDeprecated: true,
-  isAsync: true,
   listName: "Spring from/to angle (deprecated)",
   displayText: "(DEPRECATED) Spring angle from {0} to {1}",
   description: "Deprecated. Use 'Start: Named spring' in the Multi Spring category with Angle mode instead.",
@@ -10,8 +9,6 @@ export const config = {
   ],
 };
 
-export default async function (from, to) {
-  await this._runSpringActionWithOptionalWait(this._defaultSpringId, true, () => {
-    this._springFromToAngle(from, to);
-  });
+export default function (from, to) {
+  this._springFromToAngle(from, to);
 }

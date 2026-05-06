@@ -464,7 +464,7 @@ export default function (parentClass) {
         this._resetSpringState(spring, from);
       }
 
-      spring.from = spring.value;
+      spring.from = from;
       spring.to = spring.value + diff;
       spring.isPaused = false;
       spring.isAnimating = true;
