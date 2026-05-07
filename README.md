@@ -1,17 +1,11 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics with multiple named springs per behavior instance, plus object-level mesh effects.</i> <br>
-### Version 2.0.0.1
+### Version 2.0.0.2
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-2.0.0.1.c3addon/salmanshh_simple_spring-2.0.0.1.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-2.0.0.2.c3addon/salmanshh_simple_spring-2.0.0.2.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
-
-#### What's New in 2.0.0.1
-**Fixed:**
-fix positioning
-
-<sub>[View full changelog](#changelog)</sub>
 
 ---
 <b><u>Author:</u></b> SalmanShh <br>
@@ -212,6 +206,10 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 2.0.0.2
+
+---
 
 ### Version 2.0.0.1
 
