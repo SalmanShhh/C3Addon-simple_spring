@@ -9,7 +9,7 @@
         "help-url": "https://www.construct.net",
         "aceCategories": {
           "Colour_Spring": "Colour Spring",
-          "Core_Spring": "Core Spring (DEPRECATED)",
+          "Core_Spring_DEPRECATED": "Core Spring (DEPRECATED)",
           "Mesh_Effects": "Mesh Effects",
           "Mesh_Setup": "Mesh Setup",
           "Multi_Spring": "Spring Values",
@@ -39,8 +39,8 @@
         },
         "actions": {
           "ConstantColour": {
-            "list-name": "Constant: Set colour spring",
-            "display-text": "Set constant colour spring {0} target to ({2}, {3}, {4}) in {1}, apply to properties: {5}",
+            "list-name": "Apply Constant: Set colour spring",
+            "display-text": "Constant Spring \"{0}\" property Colour to ({2}, {3}, {4}) in {1}, (Apply to Property: {5})",
             "description": "Enable or update a constant colour spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
             "params": {
               "springId": {
@@ -76,7 +76,7 @@
           },
           "SetColourSpringSettings": {
             "list-name": "Settings: Set colour spring",
-            "display-text": "Set colour spring {0} settings to stiffness {1}, damping {2}, precision {3}",
+            "display-text": "Set colour spring \"{0}\" settings to stiffness {1}, damping {2}, precision {3}",
             "description": "Set stiffness, damping, and precision for all three channels of a named colour spring.",
             "params": {
               "springId": {
@@ -97,62 +97,39 @@
               }
             }
           },
-          "SpringColour": {
-            "list-name": "Start: Colour spring",
-            "display-text": "Spring colour {0} ({2}) from ({3}, {4}, {5}) to ({6}, {7}, {8}) in {1}",
-            "description": "Combined colour spring action for current-to-target or from-to workflows without applying to the object.",
+          "SetColourSpringSettingsFromDuration": {
+            "list-name": "Settings: Set colour spring from duration",
+            "display-text": "Set colour spring \"{0}\" settings from duration {1}s, precision {2}, bounce profile {3}",
+            "description": "Compute stiffness and damping so a colour spring settles in about the requested duration, with a selectable bounce profile.",
             "params": {
               "springId": {
                 "name": "Spring ID",
                 "desc": "Unique id for the colour spring."
               },
-              "colourSpace": {
-                "name": "Colour Space",
-                "desc": "How to interpret the channel values.",
+              "duration": {
+                "name": "Duration",
+                "desc": "Approximate time in seconds for the spring to settle."
+              },
+              "precision": {
+                "name": "Precision",
+                "desc": "Completion threshold in range 0.0001-1."
+              },
+              "bounceProfile": {
+                "name": "Bounce Profile",
+                "desc": "How bouncy the duration fit should be.",
                 "items": {
-                  "rgb": "RGB (R,G,B in 0-255)",
-                  "hsl": "HSL (H 0-360, S/L 0-100)",
-                  "hsv": "HSV (H 0-360, S/V 0-100)"
+                  "no_bounce": "No bounce",
+                  "balanced": "Balanced",
+                  "bouncy": "Bouncy",
+                  "very_bouncy": "Very bouncy"
                 }
-              },
-              "startMode": {
-                "name": "Start Mode",
-                "desc": "Current value uses the spring's current value. From value uses explicit from channels.",
-                "items": {
-                  "current": "Current value",
-                  "from_value": "From value"
-                }
-              },
-              "from1": {
-                "name": "From Channel 1",
-                "desc": "Used when Start Mode is From value. RGB: Red, HSL/HSV: Hue."
-              },
-              "from2": {
-                "name": "From Channel 2",
-                "desc": "Used when Start Mode is From value. RGB: Green, HSL/HSV: Saturation."
-              },
-              "from3": {
-                "name": "From Channel 3",
-                "desc": "Used when Start Mode is From value. RGB: Blue, HSL: Lightness, HSV: Value."
-              },
-              "to1": {
-                "name": "To Channel 1",
-                "desc": "RGB: Red, HSL/HSV: Hue."
-              },
-              "to2": {
-                "name": "To Channel 2",
-                "desc": "RGB: Green, HSL/HSV: Saturation."
-              },
-              "to3": {
-                "name": "To Channel 3",
-                "desc": "RGB: Blue, HSL: Lightness, HSV: Value."
               }
             }
           },
-          "SpringColourToObject": {
-            "list-name": "Start: Colour spring to properties",
-            "display-text": "Spring colour {0} to properties ({2}) from ({3}, {4}, {5}) to ({6}, {7}, {8}) in {1}",
-            "description": "Combined colour spring action for current-to-target or from-to workflows that applies the sprung colour to the instance properties.",
+          "SpringColour": {
+            "list-name": "Apply Colour spring",
+            "display-text": "Spring colour \"{0}\" ({2}) from ({3}, {4}, {5}) to ({6}, {7}, {8}) in {1}, Apply to Property ({9})",
+            "description": "Combined colour spring action for current-to-target or from-to workflows with optional apply-to-properties.",
             "params": {
               "springId": {
                 "name": "Spring ID",
@@ -198,6 +175,10 @@
               "to3": {
                 "name": "To Channel 3",
                 "desc": "RGB: Blue, HSL: Lightness, HSV: Value."
+              },
+              "applyToProperties": {
+                "name": "Apply To Properties",
+                "desc": "Apply the sprung colour to the instance properties."
               }
             }
           },
@@ -904,7 +885,7 @@
           },
           "AddToSpringVelocity": {
             "list-name": "Velocity: Add to named spring",
-            "display-text": "Add {1} to spring {0} velocity",
+            "display-text": "Add {1} to spring \"{0}\" velocity",
             "description": "Add an impulse to a named spring's current velocity.",
             "params": {
               "springId": {
@@ -918,8 +899,8 @@
             }
           },
           "ConstantSpring": {
-            "list-name": "Constant: Set spring",
-            "display-text": "Set constant spring {0} target to {1}",
+            "list-name": "Apply Constant: Set spring",
+            "display-text": "Constant Spring \"{0}\" property Value to ({1})",
             "description": "Enable or update a constant named spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
             "params": {
               "springId": {
@@ -940,7 +921,7 @@
           },
           "RemoveSpring": {
             "list-name": "Manage: Remove spring",
-            "display-text": "Remove spring {0}",
+            "display-text": "Remove spring \"{0}\"",
             "description": "Remove a named spring and its state. The legacy default spring is reset instead of removed.",
             "params": {
               "springId": {
@@ -951,7 +932,7 @@
           },
           "SetSpringSettings": {
             "list-name": "Settings: Set spring",
-            "display-text": "Set spring {0} settings to stiffness {1}, damping {2}, precision {3}",
+            "display-text": "Set spring \"{0}\" settings to stiffness {1}, damping {2}, precision {3}",
             "description": "Override stiffness, damping, and precision for a named spring. New springs inherit the behavior's default stiffness, damping, and precision set in the properties panel.",
             "params": {
               "springId": {
@@ -972,9 +953,38 @@
               }
             }
           },
+          "SetSpringSettingsFromDuration": {
+            "list-name": "Settings: Set spring from duration",
+            "display-text": "Set spring \"{0}\" settings from duration {1}s, precision {2}, bounce profile {3}",
+            "description": "Compute stiffness and damping so a named spring settles in about the requested duration, with a selectable bounce profile.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "Unique id for the spring to configure."
+              },
+              "duration": {
+                "name": "Duration",
+                "desc": "Approximate time in seconds for the spring to settle."
+              },
+              "precision": {
+                "name": "Precision",
+                "desc": "Settle threshold (0.0001-1). Lower values require closer proximity to target."
+              },
+              "bounceProfile": {
+                "name": "Bounce Profile",
+                "desc": "How bouncy the duration fit should be.",
+                "items": {
+                  "no_bounce": "No bounce",
+                  "balanced": "Balanced",
+                  "bouncy": "Bouncy",
+                  "very_bouncy": "Very bouncy"
+                }
+              }
+            }
+          },
           "SetSpringVelocity": {
             "list-name": "Velocity: Set named spring",
-            "display-text": "Set spring {0} velocity to {1}",
+            "display-text": "Set spring \"{0}\" velocity to {1}",
             "description": "Set the current velocity of a named spring directly.",
             "params": {
               "springId": {
@@ -988,8 +998,8 @@
             }
           },
           "SpringNamed": {
-            "list-name": "Start: Named spring",
-            "display-text": "Spring {0} ({1}) from {2} to {3} (mode: {4})",
+            "list-name": "Apply spring",
+            "display-text": "Spring \"{0}\" ({1}) from {2} to {3} (mode: {4})",
             "description": "Spring a named value from a start point to a target. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring.",
             "params": {
               "springId": {
@@ -1030,7 +1040,7 @@
           },
           "PauseSpring": {
             "list-name": "Pause: Spring by ID",
-            "display-text": "Pause spring {0}",
+            "display-text": "Pause spring \"{0}\"",
             "description": "Pause a spring by ID if it is active.",
             "params": {
               "springId": {
@@ -1047,7 +1057,7 @@
           },
           "ResumeSpring": {
             "list-name": "Resume: Spring by ID",
-            "display-text": "Resume spring {0}",
+            "display-text": "Resume spring \"{0}\"",
             "description": "Resume a previously paused spring by ID.",
             "params": {
               "springId": {
@@ -1064,7 +1074,7 @@
           },
           "StopSpring": {
             "list-name": "Stop: Spring by ID",
-            "display-text": "Stop spring {0}",
+            "display-text": "Stop spring \"{0}\"",
             "description": "Clear a spring by ID.",
             "params": {
               "springId": {
@@ -1075,7 +1085,7 @@
           },
           "AddToTransformAngleVelocity": {
             "list-name": "Velocity: Add to angle spring",
-            "display-text": "Add {1} to transform angle spring {0} velocity",
+            "display-text": "Add {1} to transform angle spring \"{0}\" velocity",
             "description": "Add angular velocity to a transform angle spring.",
             "params": {
               "springId": {
@@ -1089,8 +1099,8 @@
             }
           },
           "ConstantTransformAngle": {
-            "list-name": "Constant: Set angle spring",
-            "display-text": "Set constant angle spring {0} target to {1}, apply to properties: {2}",
+            "list-name": "Apply Constant: Set angle spring",
+            "display-text": "Constant Spring angle \"{0}\" property Angle to ({1}), (Apply to Property: {2})",
             "description": "Enable or update a constant angle spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
             "params": {
               "springId": {
@@ -1107,9 +1117,38 @@
               }
             }
           },
+          "SetAngleSpringSettingsFromDuration": {
+            "list-name": "Settings: Set angle spring from duration",
+            "display-text": "Set angle spring \"{0}\" settings from duration {1}s, precision {2}, bounce profile {3}",
+            "description": "Compute stiffness and damping so an angle spring settles in about the requested duration, with a selectable bounce profile.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "Unique id for this transform spring."
+              },
+              "duration": {
+                "name": "Duration",
+                "desc": "Approximate time in seconds for the spring to settle."
+              },
+              "precision": {
+                "name": "Precision",
+                "desc": "Completion threshold in range 0.0001-1."
+              },
+              "bounceProfile": {
+                "name": "Bounce Profile",
+                "desc": "How bouncy the duration fit should be.",
+                "items": {
+                  "no_bounce": "No bounce",
+                  "balanced": "Balanced",
+                  "bouncy": "Bouncy",
+                  "very_bouncy": "Very bouncy"
+                }
+              }
+            }
+          },
           "SetTransformAngleEndValue": {
             "list-name": "End Value: Transform angle spring",
-            "display-text": "Set transform angle spring {0} end value to {1}",
+            "display-text": "Set transform angle spring \"{0}\" end value to {1}",
             "description": "Overwrite the end value of a transform angle spring.",
             "params": {
               "springId": {
@@ -1124,7 +1163,7 @@
           },
           "SetTransformAngleStartValue": {
             "list-name": "Start Value: Transform angle spring",
-            "display-text": "Set transform angle spring {0} start value to {1}",
+            "display-text": "Set transform angle spring \"{0}\" start value to {1}",
             "description": "Overwrite the start value of a transform angle spring.",
             "params": {
               "springId": {
@@ -1138,9 +1177,9 @@
             }
           },
           "SpringTransformAngle": {
-            "list-name": "Start: Transform angle spring",
-            "display-text": "Spring angle {0} from {1} to {2}",
-            "description": "Combined angle spring action using explicit start and end values, without applying to properties.",
+            "list-name": "Apply Angle spring",
+            "display-text": "Spring angle \"{0}\" from {1} to {2}, Apply to Property ({3})",
+            "description": "Combined angle spring action using explicit start and end values, with optional apply-to-properties.",
             "params": {
               "springId": {
                 "name": "Spring ID",
@@ -1153,31 +1192,16 @@
               "toAngle": {
                 "name": "To Angle",
                 "desc": "Target angle in degrees."
-              }
-            }
-          },
-          "SpringTransformAngleToObject": {
-            "list-name": "Start: Transform angle spring to properties",
-            "display-text": "Spring angle {0} to properties from {1} to {2}",
-            "description": "Combined angle spring action using explicit start and end values, applying the sprung angle to the instance properties.",
-            "params": {
-              "springId": {
-                "name": "Spring ID",
-                "desc": "Unique id for this transform spring."
               },
-              "fromAngle": {
-                "name": "From Angle",
-                "desc": "Start angle in degrees."
-              },
-              "toAngle": {
-                "name": "To Angle",
-                "desc": "Target angle in degrees."
+              "applyToProperties": {
+                "name": "Apply To Properties",
+                "desc": "Apply the sprung result to the instance properties."
               }
             }
           },
           "AddToTransformPositionVelocity": {
             "list-name": "Velocity: Add to position spring",
-            "display-text": "Add ({1}, {2}, {3}) to transform position spring {0} velocity",
+            "display-text": "Add ({1}, {2}, {3}) to transform position spring \"{0}\" velocity",
             "description": "Add a velocity impulse to a transform position spring.",
             "params": {
               "springId": {
@@ -1199,8 +1223,8 @@
             }
           },
           "ConstantTransformPosition": {
-            "list-name": "Constant: Set position spring",
-            "display-text": "Set constant position spring {0} target to ({1}, {2}, {3}), apply to properties: {4}",
+            "list-name": "Apply Constant: Set position spring",
+            "display-text": "Constant Spring position \"{0}\" property Position to ({1}, {2}, {3}), (Apply to Property: {4})",
             "description": "Enable or update a constant position spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
             "params": {
               "springId": {
@@ -1225,9 +1249,38 @@
               }
             }
           },
+          "SetPositionSpringSettingsFromDuration": {
+            "list-name": "Settings: Set position spring from duration",
+            "display-text": "Set position spring \"{0}\" settings from duration {1}s, precision {2}, bounce profile {3}",
+            "description": "Compute stiffness and damping so a position spring settles in about the requested duration, with a selectable bounce profile.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "Unique id for this transform spring."
+              },
+              "duration": {
+                "name": "Duration",
+                "desc": "Approximate time in seconds for the spring to settle."
+              },
+              "precision": {
+                "name": "Precision",
+                "desc": "Completion threshold in range 0.0001-1."
+              },
+              "bounceProfile": {
+                "name": "Bounce Profile",
+                "desc": "How bouncy the duration fit should be.",
+                "items": {
+                  "no_bounce": "No bounce",
+                  "balanced": "Balanced",
+                  "bouncy": "Bouncy",
+                  "very_bouncy": "Very bouncy"
+                }
+              }
+            }
+          },
           "SetTransformPositionEndValue": {
             "list-name": "End Value: Transform position spring",
-            "display-text": "Set transform position spring {0} end value to ({1}, {2}, {3})",
+            "display-text": "Set transform position spring \"{0}\" end value to ({1}, {2}, {3})",
             "description": "Overwrite the end value of a transform position spring.",
             "params": {
               "springId": {
@@ -1250,7 +1303,7 @@
           },
           "SetTransformPositionStartValue": {
             "list-name": "Start Value: Transform position spring",
-            "display-text": "Set transform position spring {0} start value to ({1}, {2}, {3})",
+            "display-text": "Set transform position spring \"{0}\" start value to ({1}, {2}, {3})",
             "description": "Overwrite the start value of a transform position spring.",
             "params": {
               "springId": {
@@ -1273,7 +1326,7 @@
           },
           "SetTransformSpringSettings": {
             "list-name": "Settings: Set transform spring",
-            "display-text": "Set transform spring {0} settings to stiffness {1}, damping {2}, precision {3}",
+            "display-text": "Set transform spring \"{0}\" settings to stiffness \"{1}\", damping \"{2}\", precision \"{3}\"",
             "description": "Set stiffness, damping, and precision for a transform spring.",
             "params": {
               "springId": {
@@ -1295,9 +1348,9 @@
             }
           },
           "SpringTransformPosition": {
-            "list-name": "Start: Transform position XYZ spring",
-            "display-text": "Spring position {0} from ({1}, {2}, {3}) to ({4}, {5}, {6})",
-            "description": "Position spring action using explicit start and end values, including optional Z channel, without applying to the object.",
+            "list-name": "Apply Position spring",
+            "display-text": "Spring position \"{0}\" from ({1}, {2}, {3}) to ({4}, {5}, {6}), Apply to Property ({7})",
+            "description": "Position spring action using explicit start and end values, including optional Z channel, with optional apply-to-properties.",
             "params": {
               "springId": {
                 "name": "Spring ID",
@@ -1326,47 +1379,16 @@
               "toC": {
                 "name": "To Z",
                 "desc": "To Z."
-              }
-            }
-          },
-          "SpringTransformPositionToObject": {
-            "list-name": "Start: Transform position XYZ spring to properties",
-            "display-text": "Spring position {0} to properties from ({1}, {2}, {3}) to ({4}, {5}, {6})",
-            "description": "Position spring action using explicit start and end values, including optional Z channel, and applying the sprung transform to the instance properties.",
-            "params": {
-              "springId": {
-                "name": "Spring ID",
-                "desc": "Unique id for this transform spring."
               },
-              "fromA": {
-                "name": "From X",
-                "desc": "From X."
-              },
-              "fromB": {
-                "name": "From Y",
-                "desc": "From Y."
-              },
-              "fromC": {
-                "name": "From Z",
-                "desc": "From Z."
-              },
-              "toA": {
-                "name": "To X",
-                "desc": "To X."
-              },
-              "toB": {
-                "name": "To Y",
-                "desc": "To Y."
-              },
-              "toC": {
-                "name": "To Z",
-                "desc": "To Z."
+              "applyToProperties": {
+                "name": "Apply To Properties",
+                "desc": "Apply the sprung transform to the instance properties."
               }
             }
           },
           "AddToTransformSizeVelocity": {
             "list-name": "Velocity: Add to size spring",
-            "display-text": "Add ({1}, {2}) to transform size spring {0} velocity",
+            "display-text": "Add ({1}, {2}) to transform size spring \"{0}\" velocity",
             "description": "Add a velocity impulse to a transform size spring.",
             "params": {
               "springId": {
@@ -1384,8 +1406,8 @@
             }
           },
           "ConstantTransformSize": {
-            "list-name": "Constant: Set size spring",
-            "display-text": "Set constant size spring {0} target to ({1}, {2}), apply to properties: {3}",
+            "list-name": "Apply Constant: Set size spring",
+            "display-text": "Spring size \"{0}\" property Size to ({1} x {2}), (Apply to Property: {3})",
             "description": "Enable or update a constant size spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
             "params": {
               "springId": {
@@ -1406,9 +1428,38 @@
               }
             }
           },
+          "SetSizeSpringSettingsFromDuration": {
+            "list-name": "Settings: Set size spring from duration",
+            "display-text": "Set size spring \"{0}\" settings from duration {1}s, precision {2}, bounce profile {3}",
+            "description": "Compute stiffness and damping so a size spring settles in about the requested duration, with a selectable bounce profile.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "Unique id for this transform spring."
+              },
+              "duration": {
+                "name": "Duration",
+                "desc": "Approximate time in seconds for the spring to settle."
+              },
+              "precision": {
+                "name": "Precision",
+                "desc": "Completion threshold in range 0.0001-1."
+              },
+              "bounceProfile": {
+                "name": "Bounce Profile",
+                "desc": "How bouncy the duration fit should be.",
+                "items": {
+                  "no_bounce": "No bounce",
+                  "balanced": "Balanced",
+                  "bouncy": "Bouncy",
+                  "very_bouncy": "Very bouncy"
+                }
+              }
+            }
+          },
           "SetTransformSizeEndValue": {
             "list-name": "End Value: Transform size spring",
-            "display-text": "Set transform size spring {0} end value to ({1}, {2})",
+            "display-text": "Set transform size spring \"{0}\" end value to ({1}, {2})",
             "description": "Overwrite the end value of a transform size spring.",
             "params": {
               "springId": {
@@ -1427,7 +1478,7 @@
           },
           "SetTransformSizeStartValue": {
             "list-name": "Start Value: Transform size spring",
-            "display-text": "Set transform size spring {0} start value to ({1}, {2})",
+            "display-text": "Set transform size spring \"{0}\" start value to ({1}, {2})",
             "description": "Overwrite the start value of a transform size spring.",
             "params": {
               "springId": {
@@ -1445,9 +1496,9 @@
             }
           },
           "SpringTransformSize": {
-            "list-name": "Start: Transform size spring",
-            "display-text": "Spring size {0} from ({1}, {2}) to ({3}, {4})",
-            "description": "Size spring action using explicit start and end values, without applying to the object.",
+            "list-name": "Apply Size spring",
+            "display-text": "Spring size \"{0}\" from ({1}, {2}) to ({3}, {4}), Apply to Property ({5})",
+            "description": "Size spring action using explicit start and end values, with optional apply-to-properties.",
             "params": {
               "springId": {
                 "name": "Spring ID",
@@ -1468,33 +1519,10 @@
               "toB": {
                 "name": "To Height",
                 "desc": "To height."
-              }
-            }
-          },
-          "SpringTransformSizeToObject": {
-            "list-name": "Start: Transform size spring to properties",
-            "display-text": "Spring size {0} to properties from ({1}, {2}) to ({3}, {4})",
-            "description": "Size spring action using explicit start and end values, applying the sprung transform to the instance properties.",
-            "params": {
-              "springId": {
-                "name": "Spring ID",
-                "desc": "Unique id for this transform spring."
               },
-              "fromA": {
-                "name": "From Width",
-                "desc": "From width."
-              },
-              "fromB": {
-                "name": "From Height",
-                "desc": "From height."
-              },
-              "toA": {
-                "name": "To Width",
-                "desc": "To width."
-              },
-              "toB": {
-                "name": "To Height",
-                "desc": "To height."
+              "applyToProperties": {
+                "name": "Apply To Properties",
+                "desc": "Apply the sprung transform to the instance properties."
               }
             }
           }
@@ -1502,7 +1530,7 @@
         "conditions": {
           "HasColourSpringReachedTarget": {
             "list-name": "Has colour spring reached target",
-            "display-text": "Colour spring {0} has reached target",
+            "display-text": "Colour spring \"{0}\" has reached target",
             "description": "True if all channels in the named colour spring have reached their targets.",
             "params": {
               "springId": {
@@ -1513,7 +1541,7 @@
           },
           "IsColourSpringAnimating": {
             "list-name": "Is colour spring animating",
-            "display-text": "Colour spring {0} is animating",
+            "display-text": "Colour spring \"{0}\" is animating",
             "description": "True if any channel in the named colour spring is animating.",
             "params": {
               "springId": {
@@ -1613,8 +1641,8 @@
             "params": {}
           },
           "HasSpringReachedTarget": {
-            "list-name": "Has spring reached target",
-            "display-text": "Spring {0} has reached target",
+            "list-name": "On spring reached target",
+            "display-text": "On Spring \"{0}\" reached target",
             "description": "True if the named spring has settled at its target.",
             "params": {
               "springId": {
@@ -1625,7 +1653,7 @@
           },
           "IsSpringAlwaysSpringEnabled": {
             "list-name": "Is constant spring enabled",
-            "display-text": "Spring {0} is running as a constant spring",
+            "display-text": "Spring \"{0}\" is running as a constant spring",
             "description": "True if the named spring is running in constant (always-on) mode.",
             "params": {
               "springId": {
@@ -1636,8 +1664,19 @@
           },
           "IsSpringAnimating": {
             "list-name": "Is spring animating",
-            "display-text": "Spring {0} is animating",
+            "display-text": "Spring \"{0}\" is animating",
             "description": "True if the named spring is currently animating.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "Unique id of the spring to test."
+              }
+            }
+          },
+          "IsSpringConstant": {
+            "list-name": "Is spring constant",
+            "display-text": "Is Spring \"{0}\" constant",
+            "description": "True if the named spring is currently configured as a constant spring.",
             "params": {
               "springId": {
                 "name": "Spring ID",
@@ -1647,7 +1686,7 @@
           },
           "OnSpringReachedTarget": {
             "list-name": "On spring reached target",
-            "display-text": "On spring {0} reached target",
+            "display-text": "On spring \"{0}\" reached target",
             "description": "Triggered when a named spring settles at its target. Leave the id empty to catch any spring.",
             "params": {
               "springId": {
@@ -1658,7 +1697,7 @@
           },
           "OnSpringStarted": {
             "list-name": "On spring started",
-            "display-text": "On spring {0} started",
+            "display-text": "On spring \"{0}\" started",
             "description": "Triggered when a named spring begins animating. Leave the id empty to catch any spring.",
             "params": {
               "springId": {
@@ -1669,7 +1708,7 @@
           },
           "OnSpringStopped": {
             "list-name": "On spring stopped",
-            "display-text": "On spring {0} stopped",
+            "display-text": "On spring \"{0}\" stopped",
             "description": "Triggered when a named spring is stopped or snapped. Leave the id empty to catch any spring.",
             "params": {
               "springId": {
@@ -1680,7 +1719,7 @@
           },
           "HasTransformSpringReachedTarget": {
             "list-name": "Has transform spring reached target",
-            "display-text": "{1} spring {0} has reached target",
+            "display-text": "{1} spring \"{0}\" has reached target",
             "description": "True if the selected transform spring has reached its target.",
             "params": {
               "springId": {
@@ -1700,7 +1739,7 @@
           },
           "IsTransformSpringAnimating": {
             "list-name": "Is transform spring animating",
-            "display-text": "{1} spring {0} is animating",
+            "display-text": "{1} spring \"{0}\" is animating",
             "description": "True if the selected transform spring is currently animating.",
             "params": {
               "springId": {
@@ -1753,6 +1792,16 @@
           "ColourRed": {
             "translated-name": "ColourRed",
             "description": "Get the current red channel (0-255) of a named colour spring.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "Unique id of the colour spring to query."
+              }
+            }
+          },
+          "ColourSpace": {
+            "translated-name": "ColourSpace",
+            "description": "Get the current colour space used by a named colour spring (rgb, hsl, or hsv).",
             "params": {
               "springId": {
                 "name": "Spring ID",
@@ -1901,6 +1950,16 @@
               "property": {
                 "name": "Property",
                 "desc": "Which spring property to read."
+              }
+            }
+          },
+          "SpringTimeToTargetSeconds": {
+            "translated-name": "SpringTimeToTargetSeconds",
+            "description": "Estimate how long in seconds a named spring will take to settle at its target from its current state. Returns 0 if already settled or spring missing, or -1 if not settled within the simulation window.",
+            "params": {
+              "springId": {
+                "name": "Spring ID",
+                "desc": "ID of the spring to query."
               }
             }
           },

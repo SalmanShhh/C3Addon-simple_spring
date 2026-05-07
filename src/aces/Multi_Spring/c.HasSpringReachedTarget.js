@@ -1,6 +1,6 @@
 export const config = {
-  listName: "Has spring reached target",
-  displayText: "Spring {0} has reached target",
+  listName: "On spring reached target",
+  displayText: "On Spring \"{0}\" reached target",
   description: "True if the named spring has settled at its target.",
   isInvertible: true,
   params: [

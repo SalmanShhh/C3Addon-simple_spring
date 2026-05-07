@@ -1,6 +1,6 @@
 export const config = {
   listName: "Has transform spring reached target",
-  displayText: "{1} spring {0} has reached target",
+  displayText: "{1} spring \"{0}\" has reached target",
   description: "True if the selected transform spring has reached its target.",
   isInvertible: true,
   params: [

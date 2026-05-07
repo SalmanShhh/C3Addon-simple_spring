@@ -1,15 +1,28 @@
 <img src="./src/icon.svg" width="100" /><br>
 # Simple Spring
 <i>Simple numeric spring physics with multiple named springs per behavior instance, plus object-level mesh effects.</i> <br>
-### Version 1.6.2.0
+### Version 2.0.0.0
 
-[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-1.6.2.0.c3addon/salmanshh_simple_spring-1.6.2.0.c3addon)
+[<img src="https://placehold.co/200x50/4493f8/FFF?text=Download&font=montserrat" width="200"/>](https://github.com/SalmanShhh/C3Addon-simple_spring/releases/download/salmanshh_simple_spring-2.0.0.0.c3addon/salmanshh_simple_spring-2.0.0.0.c3addon)
 <br>
 <sub> [See all releases](https://github.com/SalmanShhh/C3Addon-simple_spring/releases) </sub> <br>
 
-#### What's New in 1.6.2.0
+#### What's New in 2.0.0.0
+**Added:**
+- Added Set Spring Settings From Duration.
+- Added ACE for knowing whether a spring is a "Constant" spring.
+- Added ACE for getting an estimated time it will take to reach target value (SpringTimeToTargetSeconds)
+- Added Expression for getting the colour space being used by a Colour Spring.
+
+**Changed:**
+- Improved naming scheme of Spring ACEs
+- Clean up debugger of old deprecated values.
+- Combine Apply Springing ACEs to lessen the ACE counts.
+
 **Fixed:**
-- Fix the Deprecated ACEs not working.
+- Fix Spring Triggers.
+- Fix Springing Angle Triggers.
+- Fix Async Actions so they work with the "Wait for previous actions to complete" action similar to the Tween Behaviour.
 
 <sub>[View full changelog](#changelog)</sub>
 
@@ -61,10 +74,10 @@ npm run dev
 ## Actions
 | Action | Description | Params
 | --- | --- | --- |
-| Constant: Set colour spring | Enable or update a constant colour spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Target Channel 1             *(number)* <br>Target Channel 2             *(number)* <br>Target Channel 3             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Apply Constant: Set colour spring | Enable or update a constant colour spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Target Channel 1             *(number)* <br>Target Channel 2             *(number)* <br>Target Channel 3             *(number)* <br>Apply To Properties             *(boolean)* <br> |
 | Settings: Set colour spring | Set stiffness, damping, and precision for all three channels of a named colour spring. | Spring ID             *(string)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
-| Start: Colour spring | Combined colour spring action for current-to-target or from-to workflows without applying to the object. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Start Mode             *(combo)* <br>From Channel 1             *(number)* <br>From Channel 2             *(number)* <br>From Channel 3             *(number)* <br>To Channel 1             *(number)* <br>To Channel 2             *(number)* <br>To Channel 3             *(number)* <br> |
-| Start: Colour spring to properties | Combined colour spring action for current-to-target or from-to workflows that applies the sprung colour to the instance properties. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Start Mode             *(combo)* <br>From Channel 1             *(number)* <br>From Channel 2             *(number)* <br>From Channel 3             *(number)* <br>To Channel 1             *(number)* <br>To Channel 2             *(number)* <br>To Channel 3             *(number)* <br> |
+| Settings: Set colour spring from duration | Compute stiffness and damping so a colour spring settles in about the requested duration, with a selectable bounce profile. | Spring ID             *(string)* <br>Duration             *(number)* <br>Precision             *(number)* <br>Bounce Profile             *(combo)* <br> |
+| Apply Colour spring | Combined colour spring action for current-to-target or from-to workflows with optional apply-to-properties. | Spring ID             *(string)* <br>Colour Space             *(combo)* <br>Start Mode             *(combo)* <br>From Channel 1             *(number)* <br>From Channel 2             *(number)* <br>From Channel 3             *(number)* <br>To Channel 1             *(number)* <br>To Channel 2             *(number)* <br>To Channel 3             *(number)* <br>Apply To Properties             *(boolean)* <br> |
 | Add to velocity | Deprecated. Use 'Velocity: Add to named spring' in the Multi Spring category instead. | Value             *(number)* <br> |
 | Reset to value | Deprecated. Use the Multi Spring category to set a named spring's start value or recreate the spring instead. | Value             *(number)* <br> |
 | Set always spring to target | Deprecated. Use 'Constant: Set spring' in the Multi Spring category instead. | Enabled             *(combo)* <br>Target             *(number)* <br>Mode             *(combo)* <br> |
@@ -101,12 +114,13 @@ npm run dev
 | Set precision | Set mesh settle precision. | Precision             *(number)* <br> |
 | Set stiffness | Set mesh spring stiffness. | Stiffness             *(number)* <br> |
 | Velocity: Add to named spring | Add an impulse to a named spring's current velocity. | Spring ID             *(string)* <br>Velocity             *(number)* <br> |
-| Constant: Set spring | Enable or update a constant named spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target             *(number)* <br> |
+| Apply Constant: Set spring | Enable or update a constant named spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target             *(number)* <br> |
 | Debug: Log active springs | Output a table of currently active springs and state values to the browser console. |  |
 | Manage: Remove spring | Remove a named spring and its state. The legacy default spring is reset instead of removed. | Spring ID             *(string)* <br> |
 | Settings: Set spring | Override stiffness, damping, and precision for a named spring. New springs inherit the behavior's default stiffness, damping, and precision set in the properties panel. | Spring ID             *(string)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
+| Settings: Set spring from duration | Compute stiffness and damping so a named spring settles in about the requested duration, with a selectable bounce profile. | Spring ID             *(string)* <br>Duration             *(number)* <br>Precision             *(number)* <br>Bounce Profile             *(combo)* <br> |
 | Velocity: Set named spring | Set the current velocity of a named spring directly. | Spring ID             *(string)* <br>Velocity             *(number)* <br> |
-| Start: Named spring | Spring a named value from a start point to a target. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. | Spring ID             *(string)* <br>Start Mode             *(combo)* <br>From             *(number)* <br>To             *(number)* <br>Mode             *(combo)* <br> |
+| Apply spring | Spring a named value from a start point to a target. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. | Spring ID             *(string)* <br>Start Mode             *(combo)* <br>From             *(number)* <br>To             *(number)* <br>Mode             *(combo)* <br> |
 | Pause: All springs | Pause all active springs. |  |
 | Pause: Spring by ID | Pause a spring by ID if it is active. | Spring ID             *(string)* <br> |
 | Resume: All springs | Resume all paused springs. |  |
@@ -114,24 +128,24 @@ npm run dev
 | Stop: All springs | Stop and clear all springs. |  |
 | Stop: Spring by ID | Clear a spring by ID. | Spring ID             *(string)* <br> |
 | Velocity: Add to angle spring | Add angular velocity to a transform angle spring. | Spring ID             *(string)* <br>Angular Velocity             *(number)* <br> |
-| Constant: Set angle spring | Enable or update a constant angle spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target Angle             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Apply Constant: Set angle spring | Enable or update a constant angle spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target Angle             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Settings: Set angle spring from duration | Compute stiffness and damping so an angle spring settles in about the requested duration, with a selectable bounce profile. | Spring ID             *(string)* <br>Duration             *(number)* <br>Precision             *(number)* <br>Bounce Profile             *(combo)* <br> |
 | End Value: Transform angle spring | Overwrite the end value of a transform angle spring. | Spring ID             *(string)* <br>End Angle             *(number)* <br> |
 | Start Value: Transform angle spring | Overwrite the start value of a transform angle spring. | Spring ID             *(string)* <br>Start Angle             *(number)* <br> |
-| Start: Transform angle spring | Combined angle spring action using explicit start and end values, without applying to properties. | Spring ID             *(string)* <br>From Angle             *(number)* <br>To Angle             *(number)* <br> |
-| Start: Transform angle spring to properties | Combined angle spring action using explicit start and end values, applying the sprung angle to the instance properties. | Spring ID             *(string)* <br>From Angle             *(number)* <br>To Angle             *(number)* <br> |
+| Apply Angle spring | Combined angle spring action using explicit start and end values, with optional apply-to-properties. | Spring ID             *(string)* <br>From Angle             *(number)* <br>To Angle             *(number)* <br>Apply To Properties             *(boolean)* <br> |
 | Velocity: Add to position spring | Add a velocity impulse to a transform position spring. | Spring ID             *(string)* <br>Velocity X             *(number)* <br>Velocity Y             *(number)* <br>Velocity Z             *(number)* <br> |
-| Constant: Set position spring | Enable or update a constant position spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target X             *(number)* <br>Target Y             *(number)* <br>Target Z             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Apply Constant: Set position spring | Enable or update a constant position spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target X             *(number)* <br>Target Y             *(number)* <br>Target Z             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Settings: Set position spring from duration | Compute stiffness and damping so a position spring settles in about the requested duration, with a selectable bounce profile. | Spring ID             *(string)* <br>Duration             *(number)* <br>Precision             *(number)* <br>Bounce Profile             *(combo)* <br> |
 | End Value: Transform position spring | Overwrite the end value of a transform position spring. | Spring ID             *(string)* <br>End X             *(number)* <br>End Y             *(number)* <br>End Z             *(number)* <br> |
 | Start Value: Transform position spring | Overwrite the start value of a transform position spring. | Spring ID             *(string)* <br>Start X             *(number)* <br>Start Y             *(number)* <br>Start Z             *(number)* <br> |
 | Settings: Set transform spring | Set stiffness, damping, and precision for a transform spring. | Spring ID             *(string)* <br>Stiffness             *(number)* <br>Damping             *(number)* <br>Precision             *(number)* <br> |
-| Start: Transform position XYZ spring | Position spring action using explicit start and end values, including optional Z channel, without applying to the object. | Spring ID             *(string)* <br>From X             *(number)* <br>From Y             *(number)* <br>From Z             *(number)* <br>To X             *(number)* <br>To Y             *(number)* <br>To Z             *(number)* <br> |
-| Start: Transform position XYZ spring to properties | Position spring action using explicit start and end values, including optional Z channel, and applying the sprung transform to the instance properties. | Spring ID             *(string)* <br>From X             *(number)* <br>From Y             *(number)* <br>From Z             *(number)* <br>To X             *(number)* <br>To Y             *(number)* <br>To Z             *(number)* <br> |
+| Apply Position spring | Position spring action using explicit start and end values, including optional Z channel, with optional apply-to-properties. | Spring ID             *(string)* <br>From X             *(number)* <br>From Y             *(number)* <br>From Z             *(number)* <br>To X             *(number)* <br>To Y             *(number)* <br>To Z             *(number)* <br>Apply To Properties             *(boolean)* <br> |
 | Velocity: Add to size spring | Add a velocity impulse to a transform size spring. | Spring ID             *(string)* <br>Velocity Width             *(number)* <br>Velocity Height             *(number)* <br> |
-| Constant: Set size spring | Enable or update a constant size spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target Width             *(number)* <br>Target Height             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Apply Constant: Set size spring | Enable or update a constant size spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate. | Spring ID             *(string)* <br>Target Width             *(number)* <br>Target Height             *(number)* <br>Apply To Properties             *(boolean)* <br> |
+| Settings: Set size spring from duration | Compute stiffness and damping so a size spring settles in about the requested duration, with a selectable bounce profile. | Spring ID             *(string)* <br>Duration             *(number)* <br>Precision             *(number)* <br>Bounce Profile             *(combo)* <br> |
 | End Value: Transform size spring | Overwrite the end value of a transform size spring. | Spring ID             *(string)* <br>End Width             *(number)* <br>End Height             *(number)* <br> |
 | Start Value: Transform size spring | Overwrite the start value of a transform size spring. | Spring ID             *(string)* <br>Start Width             *(number)* <br>Start Height             *(number)* <br> |
-| Start: Transform size spring | Size spring action using explicit start and end values, without applying to the object. | Spring ID             *(string)* <br>From Width             *(number)* <br>From Height             *(number)* <br>To Width             *(number)* <br>To Height             *(number)* <br> |
-| Start: Transform size spring to properties | Size spring action using explicit start and end values, applying the sprung transform to the instance properties. | Spring ID             *(string)* <br>From Width             *(number)* <br>From Height             *(number)* <br>To Width             *(number)* <br>To Height             *(number)* <br> |
+| Apply Size spring | Size spring action using explicit start and end values, with optional apply-to-properties. | Spring ID             *(string)* <br>From Width             *(number)* <br>From Height             *(number)* <br>To Width             *(number)* <br>To Height             *(number)* <br>Apply To Properties             *(boolean)* <br> |
 
 
 ---
@@ -155,9 +169,10 @@ npm run dev
 | On settled | Triggered when mesh spring animation settles. |  |
 | On started | Triggered when mesh spring animation starts. |  |
 | On unsupported | Triggered when a mesh action is called on an instance that does not support mesh. |  |
-| Has spring reached target | True if the named spring has settled at its target. | Spring ID *(string)* <br> |
+| On spring reached target | True if the named spring has settled at its target. | Spring ID *(string)* <br> |
 | Is constant spring enabled | True if the named spring is running in constant (always-on) mode. | Spring ID *(string)* <br> |
 | Is spring animating | True if the named spring is currently animating. | Spring ID *(string)* <br> |
+| Is spring constant | True if the named spring is currently configured as a constant spring. | Spring ID *(string)* <br> |
 | On spring reached target | Triggered when a named spring settles at its target. Leave the id empty to catch any spring. | Spring ID *(string)* <br> |
 | On spring started | Triggered when a named spring begins animating. Leave the id empty to catch any spring. | Spring ID *(string)* <br> |
 | On spring stopped | Triggered when a named spring is stopped or snapped. Leave the id empty to catch any spring. | Spring ID *(string)* <br> |
@@ -173,6 +188,7 @@ npm run dev
 | ColourGreen | Get the current green channel (0-255) of a named colour spring. | number | Spring ID *(string)* <br> | 
 | ColourHex | Get the current colour of a named spring as a #RRGGBB string. | string | Spring ID *(string)* <br> | 
 | ColourRed | Get the current red channel (0-255) of a named colour spring. | number | Spring ID *(string)* <br> | 
+| ColourSpace | Get the current colour space used by a named colour spring (rgb, hsl, or hsv). | string | Spring ID *(string)* <br> | 
 | AlwaysSpringTarget | Deprecated. There is no direct Multi Spring expression replacement. Use 'Constant: Set spring' in the Multi Spring category to manage the target instead. | number |  | 
 | Damping | Deprecated. Use the Multi Spring category expression SpringDamping("id") instead. | number |  | 
 | From | Deprecated. Use the Multi Spring category expression SpringFrom("id") instead. | number |  | 
@@ -194,6 +210,7 @@ npm run dev
 | SpringIdAt | Get a spring id by zero-based index. | string | Index *(number)* <br> | 
 | SpringProgress | Get progress from 0 to 1 for a named spring. | number | Spring ID *(string)* <br> | 
 | SpringProperty | Get stiffness, damping, or precision of a named spring. | number | Spring ID *(string)* <br>Property *(string)* <br> | 
+| SpringTimeToTargetSeconds | Estimate how long in seconds a named spring will take to settle at its target from its current state. Returns 0 if already settled or spring missing, or -1 if not settled within the simulation window. | number | Spring ID *(string)* <br> | 
 | SpringTo | Get the target value of a named spring. | number | Spring ID *(string)* <br> | 
 | SpringValue | Get the current value of a named spring. | number | Spring ID *(string)* <br> | 
 | SpringVelocity | Get the current velocity of a named spring. | number | Spring ID *(string)* <br> | 
@@ -208,6 +225,25 @@ npm run dev
 
 ---
 ## Changelog
+
+### Version 2.0.0.0
+
+**Added:**
+- Added Set Spring Settings From Duration.
+- Added ACE for knowing whether a spring is a "Constant" spring.
+- Added ACE for getting an estimated time it will take to reach target value (SpringTimeToTargetSeconds)
+- Added Expression for getting the colour space being used by a Colour Spring.
+
+**Changed:**
+- Improved naming scheme of Spring ACEs
+- Clean up debugger of old deprecated values.
+- Combine Apply Springing ACEs to lessen the ACE counts.
+
+**Fixed:**
+- Fix Spring Triggers.
+- Fix Springing Angle Triggers.
+- Fix Async Actions so they work with the "Wait for previous actions to complete" action similar to the Tween Behaviour.
+---
 
 ### Version 1.6.2.0
 

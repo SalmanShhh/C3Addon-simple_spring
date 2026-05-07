@@ -39,7 +39,7 @@ export const files = {
 
 // categories that are not filled will use the folder name
 export const aceCategories = {
-  Core_Spring: "Core Spring (DEPRECATED)",
+  Core_Spring_DEPRECATED: "Core Spring (DEPRECATED)",
   Multi_Spring: "Spring Values",
   Multi_Spring_Playback: "Springs Playback",
   Colour_Spring: "Colour Spring",

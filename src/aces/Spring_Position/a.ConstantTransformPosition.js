@@ -1,6 +1,6 @@
 export const config = {
-  listName: "Constant: Set position spring",
-  displayText: "Set constant position spring {0} target to ({1}, {2}, {3}), apply to properties: {4}",
+  listName: "Apply Constant: Set position spring",
+  displayText: "Constant Spring position \"{0}\" property Position to ({1}, {2}, {3}), (Apply to Property: {4})",
   description: "Enable or update a constant position spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for this transform spring.", type: "string", initialValue: '"main"' },

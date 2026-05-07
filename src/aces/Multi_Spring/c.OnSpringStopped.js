@@ -1,6 +1,6 @@
 export const config = {
   listName: "On spring stopped",
-  displayText: "On spring {0} stopped",
+  displayText: "On spring \"{0}\" stopped",
   description: "Triggered when a named spring is stopped or snapped. Leave the id empty to catch any spring.",
   isTrigger: true,
   params: [
@@ -10,5 +10,5 @@ export const config = {
 
 export default function (springId) {
   const value = String(springId ?? "").trim();
-  return !value || this._getLastSpringId() === value;
+  return !value || this._lastStoppedSpringId === value;
 }

@@ -1,6 +1,6 @@
 export const config = {
-  listName: "Constant: Set size spring",
-  displayText: "Set constant size spring {0} target to ({1}, {2}), apply to properties: {3}",
+  listName: "Apply Constant: Set size spring",
+  displayText: "Spring size \"{0}\" property Size to ({1} x {2}), (Apply to Property: {3})",
   description: "Enable or update a constant size spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for this transform spring.", type: "string", initialValue: '"main"' },

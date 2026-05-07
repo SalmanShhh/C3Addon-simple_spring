@@ -57,7 +57,7 @@ Construct projects often need responsive motion that can be interrupted and reta
 - **Camera smoothing**: constant spring follow with tunable lag.
 - **Impact reactions**: velocity impulses and mesh punches.
 - **Colour transitions**: health tints, status effects, ambient palette shifts.
-- **Transform animation without tick glue**: to-properties actions for position/size/angle.
+- **Transform animation without tick glue**: combined grouped spring actions with per-call Apply To Property control.
 - **Stylized deformation**: mesh effect presets and constant sway.
 
 ## 2. Project Setup
@@ -154,10 +154,10 @@ RGB damage flash:
 
 ```text
 Event: Player -> On damaged
-  Action: Player -> Start: Colour spring to properties -> "damage_rgb", RGB, Current value, 255,255,255, 255,100,100
+  Action: Player -> Start: Colour spring -> "damage_rgb", RGB, Current value, 255,255,255, 255,100,100, true
 
 Event: Player -> On recovered
-  Action: Player -> Start: Colour spring to properties -> "damage_rgb", RGB, Current value, 255,100,100, 255,255,255
+  Action: Player -> Start: Colour spring -> "damage_rgb", RGB, Current value, 255,100,100, 255,255,255, true
 ```
 
 HSL health gradient:
@@ -174,7 +174,7 @@ Event: Weapon -> While charging
   Action: Weapon -> Constant: Set colour spring -> "charge_hsv", HSV, 200, 70, 40 + Charge01 * 60, true
 
 Event: Weapon -> On charge released
-  Action: Weapon -> Start: Colour spring to properties -> "charge_hsv", HSV, Current value, 200,70,100, 40,0,100
+  Action: Weapon -> Start: Colour spring -> "charge_hsv", HSV, Current value, 200,70,100, 40,0,100, true
 ```
 
 HSV stealth reveal pulse:
@@ -233,13 +233,14 @@ Practical selection rule:
 
 ```text
 Event: Player -> On damaged
-  Action: Player -> Start: Colour spring to properties -> "damage", RGB, Current value, 0,0,0, 255,80,80
+  Action: Player -> Start: Colour spring -> "damage", RGB, Current value, 0,0,0, 255,80,80, true
 ```
 
 ### Gotchas
 
 - One colour spring ID owns auto-apply at a time.
 - `Constant: Set colour spring` replaces old enabled/target split actions.
+- `ColourSpace("springId")` reports the currently configured colour space for that spring ID (`rgb`, `hsl`, or `hsv`).
 
 ## 7. Spring Position
 
@@ -269,7 +270,7 @@ Size springs animate Width/Height (and internal Depth channel) with optional aut
 
 ```text
 Event: Icon -> On selected
-  Action: Icon -> Start: Transform size spring to properties -> "pulse", 32,32, 40,40
+  Action: Icon -> Apply Size spring -> "pulse", 32,32, 40,40, true
 ```
 
 ### Gotchas
@@ -341,43 +342,43 @@ Core Spring ACEs are deprecated compatibility actions and conditions. They are s
 
 | Action | Description |
 |---|---|
-| Start: Colour spring | Starts a colour spring without auto-applying object colour. |
-| Start: Colour spring to properties | Starts a colour spring and auto-applies colour to object properties. |
+| Start: Colour spring | Starts a colour spring with explicit Apply To Property control in the same action. |
 | Constant: Set colour spring | Sets and runs constant colour spring. |
 | Settings: Set colour spring | Sets stiffness, damping, precision for named colour spring channels. |
+| Settings: Set colour spring from duration | Fits stiffness and damping from duration, precision, and bounce profile. |
 
 ### Spring Position
 
 | Action | Description |
 |---|---|
-| Start: Transform position XYZ spring | Starts position spring without auto-apply. |
-| Start: Transform position XYZ spring to properties | Starts position spring with auto-apply. |
+| Apply Position spring | Starts position spring with explicit Apply To Property control in the same action. |
 | Constant: Set position spring | Configures and runs constant position spring. |
 | Start Value: Transform position spring | Sets start values for position spring channels. |
 | End Value: Transform position spring | Sets target values for position spring channels. |
 | Settings: Set transform spring | Sets stiffness, damping, precision for position spring channels. |
+| Settings: Set position spring from duration | Fits stiffness and damping from duration, precision, and bounce profile. |
 | Velocity: Add to position spring | Adds velocity per X/Y/Z channel. |
 
 ### Spring Size
 
 | Action | Description |
 |---|---|
-| Start: Transform size spring | Starts size spring without auto-apply. |
-| Start: Transform size spring to properties | Starts size spring with auto-apply. |
+| Apply Size spring | Starts size spring with explicit Apply To Property control in the same action. |
 | Constant: Set size spring | Configures and runs constant size spring. |
 | Start Value: Transform size spring | Sets start width and height values. |
 | End Value: Transform size spring | Sets target width and height values. |
+| Settings: Set size spring from duration | Fits stiffness and damping from duration, precision, and bounce profile. |
 | Velocity: Add to size spring | Adds velocity on width and height channels. |
 
 ### Spring Angle
 
 | Action | Description |
 |---|---|
-| Start: Transform angle spring | Starts angle spring without auto-apply. |
-| Start: Transform angle spring to properties | Starts angle spring with auto-apply. |
+| Apply Angle spring | Starts angle spring with explicit Apply To Property control in the same action. |
 | Constant: Set angle spring | Configures and runs constant angle spring. |
 | Start Value: Transform angle spring | Sets angle spring start value. |
 | End Value: Transform angle spring | Sets angle spring target value. |
+| Settings: Set angle spring from duration | Fits stiffness and damping from duration, precision, and bounce profile. |
 | Velocity: Add to angle spring | Adds angular velocity impulse. |
 
 ### Mesh Setup
@@ -477,6 +478,7 @@ Core Spring ACEs are deprecated compatibility actions and conditions. They are s
 | ColourGreen("id") | number | Current green channel 0-255. |
 | ColourBlue("id") | number | Current blue channel 0-255. |
 | ColourHex("id") | string | Current colour in hex format. |
+| ColourSpace("id") | string | Current colour space used by the named colour spring (`rgb`, `hsl`, or `hsv`). |
 | TransformX("id") | number | Sprung X value. |
 | TransformY("id") | number | Sprung Y value. |
 | TransformZ("id") | number | Sprung Z value. |
@@ -572,7 +574,7 @@ Scenario: Damage tint that settles back.
 
 ```text
 Event: Player -> On damaged
-  Action: Player -> Start: Colour spring to properties -> "damage", RGB, Current value, 0,0,0, 255,120,120
+  Action: Player -> Start: Colour spring -> "damage", RGB, Current value, 0,0,0, 255,120,120, true
 ```
 
 Scenario: Health bar colour tracks HP with constant spring target updates.
@@ -602,11 +604,11 @@ Scenario: Apply scale pop and angular tilt together on dash start.
 
 ```text
 Event: Player -> On dash started
-  Action: Player -> Start: Transform size spring to properties -> "dash_scale", Player.Width, Player.Height, Player.Width * 1.15, Player.Height * 0.9
+  Action: Player -> Apply Size spring -> "dash_scale", Player.Width, Player.Height, Player.Width * 1.15, Player.Height * 0.9, true
   Action: Player -> Velocity: Add to angle spring -> "dash_tilt", 18
 
 Event: Player -> On dash ended
-  Action: Player -> Start: Transform angle spring to properties -> "dash_tilt", Player.Angle, 0
+  Action: Player -> Apply Angle spring -> "dash_tilt", Player.Angle, 0, true
 ```
 
 Note: Combining categories keeps each channel focused while sharing one behavior instance.
@@ -647,7 +649,7 @@ UI
 
 ```text
 Event: Menu -> On opened
-  Action: Panel -> Start: Transform position XYZ spring to properties -> "panel", -600, 120, 0, 80, 120, 0
+  Action: Panel -> Apply Position spring -> "panel", -600, 120, 0, 80, 120, 0, true
 ```
 
 Tip: Use Start Value and End Value transform actions when you need reusable preset positions.
@@ -718,11 +720,11 @@ Scenario: Button press pop using size spring.
 
 ```text
 Event: Button -> On clicked
-  Action: Button -> Start: Transform size spring to properties -> "pop", 1,1, 1.2,1.2
+  Action: Button -> Apply Size spring -> "pop", 1,1, 1.2,1.2, true
 
 Event: Button -> On spring reached target
   Condition: Button.SpringEventId("last_completed") = "pop"
-  Action: Button -> Start: Transform size spring to properties -> "pop", Button.Width, Button.Height, Button.Width, Button.Height
+  Action: Button -> Apply Size spring -> "pop", Button.Width, Button.Height, Button.Width, Button.Height, true
 ```
 
 Tip: Chain a return spring in completion trigger for clean two-phase pop animation.
@@ -747,7 +749,7 @@ Event: Player -> On dash started
   Action: Player -> Velocity: Add to angle spring -> "tilt", 25
 
 Event: Player -> On dash ended
-  Action: Player -> Start: Transform angle spring to properties -> "tilt", Player.Angle, 0
+  Action: Player -> Apply Angle spring -> "tilt", Player.Angle, 0, true
 ```
 
 Tip: Velocity impulse plus explicit settle target gives responsive but controlled motion.
@@ -816,11 +818,27 @@ World
 
 ```text
 Event: Enemy -> On damaged
-  Action: Enemy -> Start: Colour spring to properties -> "hit_tint", RGB, Current value, 0,0,0, 255,140,140
+  Action: Enemy -> Start: Colour spring -> "hit_tint", RGB, Current value, 0,0,0, 255,140,140, true
   Action: Enemy -> Do Mesh Effect: Punch -> 0.5, 0.5, 0.2, 0.8, Smooth, Yes
 ```
 
 Tip: This combination reads clearly even without extra particles.
+
+### 27. Adaptive colour logic by colour space
+
+Scenario: You have shared UI logic that behaves differently depending on whether a spring is configured in RGB, HSL, or HSV.
+
+```text
+Event: Every tick
+  Condition: HUD.ColourSpace("hp") = "hsl"
+  Action: DebugText -> Set Text to "HSL mode active"
+
+Event: Every tick
+  Condition: HUD.ColourSpace("hp") = "rgb"
+  Action: DebugText -> Set Text to "RGB mode active"
+```
+
+Tip: This is useful for reusable UI/event logic where spring IDs can be configured differently per layout.
 
 ### 13. Card hand fan animation
 
@@ -835,8 +853,8 @@ UI
 
 ```text
 Event: On card added to hand
-  Action: Card -> Start: Transform position XYZ spring to properties -> "hand_pos", Card.X, -200, 0, TargetX, TargetY, 0
-  Action: Card -> Start: Transform angle spring to properties -> "hand_rot", 0, TargetAngle
+  Action: Card -> Apply Position spring -> "hand_pos", Card.X, -200, 0, TargetX, TargetY, 0, true
+  Action: Card -> Apply Angle spring -> "hand_rot", 0, TargetAngle, true
 ```
 
 Tip: Use one spring ID per channel (`hand_pos`, `hand_rot`) so retargeting remains predictable.
@@ -847,11 +865,11 @@ Scenario: A minimap marker pulses size when a ping is placed.
 
 ```text
 Event: Minimap -> On ping added
-  Action: PingIcon -> Start: Transform size spring to properties -> "ping_pop", 8, 8, 14, 14
+  Action: PingIcon -> Apply Size spring -> "ping_pop", 8, 8, 14, 14, true
 
 Event: PingIcon -> On spring reached target
   Condition: PingIcon.SpringEventId("last_completed") = "ping_pop"
-  Action: PingIcon -> Start: Transform size spring to properties -> "ping_pop", PingIcon.Width, PingIcon.Height, 8, 8
+  Action: PingIcon -> Apply Size spring -> "ping_pop", PingIcon.Width, PingIcon.Height, 8, 8, true
 ```
 
 Tip: For UI pulses, higher damping reduces distracting bounce in peripheral vision.
@@ -862,11 +880,11 @@ Scenario: Focused dialogue option gets colour and size emphasis.
 
 ```text
 Event: ChoiceItem -> On focused
-  Action: ChoiceItem -> Start: Colour spring to properties -> "focus_tint", RGB, Current value, 0, 0, 0, 255, 230, 170
-  Action: ChoiceItem -> Start: Transform size spring to properties -> "focus_size", ChoiceItem.Width, ChoiceItem.Height, ChoiceItem.Width * 1.05, ChoiceItem.Height * 1.05
+  Action: ChoiceItem -> Start: Colour spring -> "focus_tint", RGB, Current value, 0, 0, 0, 255, 230, 170, true
+  Action: ChoiceItem -> Apply Size spring -> "focus_size", ChoiceItem.Width, ChoiceItem.Height, ChoiceItem.Width * 1.05, ChoiceItem.Height * 1.05, true
 
 Event: ChoiceItem -> On unfocused
-  Action: ChoiceItem -> Start: Colour spring to properties -> "focus_tint", RGB, Current value, 0, 0, 0, 255, 255, 255
+  Action: ChoiceItem -> Start: Colour spring -> "focus_tint", RGB, Current value, 0, 0, 0, 255, 255, 255, true
 ```
 
 Tip: Combining subtle tint and scale gives clear focus feedback without audio.
@@ -888,7 +906,7 @@ Scenario: Weak-point icon flashes before opening for damage.
 
 ```text
 Event: Boss -> On weak-point about to open
-  Action: WeakPointIcon -> Start: Colour spring to properties -> "warn", RGB, Current value, 0, 0, 0, 255, 80, 80
+  Action: WeakPointIcon -> Start: Colour spring -> "warn", RGB, Current value, 0, 0, 0, 255, 80, 80, true
   Action: WeakPointIcon -> Start: Named spring -> "alpha", Current value, 0, 255, Value
 
 Event: Every tick
@@ -942,11 +960,11 @@ Scenario: Placement ghost turns red and compresses when invalid, then recovers.
 
 ```text
 Event: BuildGhost -> While placement invalid
-  Action: BuildGhost -> Start: Colour spring to properties -> "validity", RGB, Current value, 0,0,0, 255,130,130
-  Action: BuildGhost -> Start: Transform size spring to properties -> "validity_size", BuildGhost.Width, BuildGhost.Height, BuildGhost.Width * 0.95, BuildGhost.Height * 0.95
+  Action: BuildGhost -> Start: Colour spring -> "validity", RGB, Current value, 0,0,0, 255,130,130, true
+  Action: BuildGhost -> Apply Size spring -> "validity_size", BuildGhost.Width, BuildGhost.Height, BuildGhost.Width * 0.95, BuildGhost.Height * 0.95, true
 
 Event: BuildGhost -> While placement valid
-  Action: BuildGhost -> Start: Colour spring to properties -> "validity", RGB, Current value, 0,0,0, 255,255,255
+  Action: BuildGhost -> Start: Colour spring -> "validity", RGB, Current value, 0,0,0, 255,255,255, true
 ```
 
 Tip: Fast stiffness with high damping makes validity feedback crisp and readable.
@@ -958,11 +976,11 @@ Scenario: Perfect hit marker pops and settles quickly on beat games.
 ```text
 Event: Rhythm -> On perfect hit
   Action: HitMarker -> Velocity: Add to size spring -> "hit_pop", 6, 6
-  Action: HitMarker -> Start: Transform size spring to properties -> "hit_pop", HitMarker.Width, HitMarker.Height, HitMarker.Width * 1.2, HitMarker.Height * 1.2
+  Action: HitMarker -> Apply Size spring -> "hit_pop", HitMarker.Width, HitMarker.Height, HitMarker.Width * 1.2, HitMarker.Height * 1.2, true
 
 Event: HitMarker -> On spring reached target
   Condition: HitMarker.SpringEventId("last_completed") = "hit_pop"
-  Action: HitMarker -> Start: Transform size spring to properties -> "hit_pop", HitMarker.Width, HitMarker.Height, BaseW, BaseH
+  Action: HitMarker -> Apply Size spring -> "hit_pop", HitMarker.Width, HitMarker.Height, BaseW, BaseH, true
 ```
 
 Tip: Syncing spring starts to beat timing gives strong visual rhythm without extra animation assets.
@@ -995,11 +1013,37 @@ Scenario: Player respawns with fast position settle and colour fade-in.
 
 ```text
 Event: Player -> On respawned
-  Action: Player -> Start: Transform position XYZ spring to properties -> "respawn_pos", Checkpoint.X, Checkpoint.Y - 120, 0, Checkpoint.X, Checkpoint.Y, 0
-  Action: Player -> Start: Colour spring to properties -> "respawn_tint", RGB, Current value, 0,0,0, 255,255,255
+  Action: Player -> Apply Position spring -> "respawn_pos", Checkpoint.X, Checkpoint.Y - 120, 0, Checkpoint.X, Checkpoint.Y, 0, true
+  Action: Player -> Start: Colour spring -> "respawn_tint", RGB, Current value, 0,0,0, 255,255,255, true
 ```
 
 Tip: This gives readable respawn feedback without blocking player control.
+
+### 25. Duration tuning with bounce profile
+
+Scenario: One spring ID gets reused for different feel targets without hand-tuning stiffness/damping every time.
+
+```text
+Event: Player -> On entered water
+  Action: Player -> Settings: Set spring from duration -> "cam_y", 0.7, 0.02, No bounce
+
+Event: Player -> On dash started
+  Action: Player -> Settings: Set spring from duration -> "cam_y", 0.25, 0.02, Very bouncy
+```
+
+Tip: Duration controls settle time, and bounce profile controls overshoot character.
+
+### 26. Async sequencing for grouped springs
+
+Scenario: A card intro needs Position + Angle grouped actions to run in order, waiting for the previous spring motion to fully settle first.
+
+```text
+Event: Card -> On revealed
+  Action: Card -> Apply Position spring -> "reveal_pos", Card.X, -180, 0, TargetX, TargetY, 0, true  // async action waits for completion
+  Action: Card -> Apply Angle spring -> "reveal_rot", -12, 0, true                                     // starts after previous settles
+```
+
+Tip: Grouped async actions now wait on all related channel springs for the spring ID, so sequencing matches tween-like expectations.
 
 ### Other game use cases
 
@@ -1147,6 +1191,7 @@ spring.ConstantSpring("cam_x", player.x, 0);  // mode combo index: 0 = Value
 spring.AddToSpringVelocity("cam_x", 8);
 spring.ConstantTransformPosition("follow", player.x, player.y, 0, true);
 spring.ConstantColour("hit", 0, 255, 120, 120, true);
+spring.SpringTransformSize("ui_pop", 1, 1, 1.2, 1.2, true);
 ```
 
 Additional category examples:
@@ -1161,7 +1206,7 @@ spring.PauseSpring("cam_x");
 spring.ResumeSpring("cam_x");
 
 // Colour Spring
-spring.SpringColourToObject("hit", 0, 255, 255, 255, 255, 120, 120);
+spring.SpringColour("hit", 0, 0, 0, 0, 0, 255, 120, 120, true);
 
 // Transform categories
 spring.ConstantTransformAngle("aim", 90, true);
@@ -1272,7 +1317,7 @@ class SpringController {
   }
 
   hitFlashAndPop() {
-    this.spring.SpringColourToObject("hit", 0, 255, 255, 255, 255, 120, 120);
+    this.spring.SpringColour("hit", 0, 0, 0, 0, 0, 255, 120, 120, true);
     this.spring.AddToTransformAngleVelocity("tilt", 14);
   }
 
@@ -1305,6 +1350,35 @@ For auto-apply groups (colour, position, size, angle), the latest constant/start
 
 The runtime serializes spring map state, last event IDs, auto-apply sets, and mesh state including points and sway parameters. Loading restores in-progress motion and rebuilds active spring tracking.
 
+### Duration fit and bounce profile
+
+Duration-based settings actions now include a **Bounce Profile** option:
+
+- No bounce
+- Balanced
+- Bouncy
+- Very bouncy
+
+Use these when you want time-based tuning while keeping control over overshoot character.
+
+```text
+Event: UI -> On panel opened
+  Action: Panel -> Settings: Set position spring from duration -> "panel", 0.35, 0.02, Balanced
+  Action: Panel -> Apply Position spring -> "panel", -500, 120, 0, 80, 120, 0, true
+```
+
+### Async wait behavior for grouped springs
+
+Async grouped actions now wait for the full grouped spring to settle before resolving when using the built-in wait queue.
+
+```text
+Event: RewardCard -> On shown
+  Action: RewardCard -> Apply Size spring -> "intro", 0.8, 0.8, 1.1, 1.1, true
+  Action: RewardCard -> Apply Size spring -> "intro", 1.1, 1.1, 1.0, 1.0, true
+```
+
+This pattern behaves like serialized tween steps without manual trigger plumbing.
+
 ### Mesh preset combos
 
 `Do Mesh Effect: Preset combo` supports 11 presets:
@@ -1326,6 +1400,8 @@ The runtime serializes spring map state, last event IDs, auto-apply sets, and me
 - Use unique, stable spring IDs per behavior instance.
 - Prefer `Constant: Set ... spring` actions over old enabled/target split workflows.
 - Use playback actions for pause/resume/stop lifecycle control.
+- Grouped start actions are combined now. Use one action with the final Apply To Property parameter instead of old separate "to properties" variants.
+- Use duration-based settings with bounce profile to tune settle time and overshoot together.
 - For transform and colour auto-apply, do not also manually set the same properties each tick unless intentional.
 - Keep damping in the 0-1 range.
 - Set lower precision only when you need tighter settle checks.

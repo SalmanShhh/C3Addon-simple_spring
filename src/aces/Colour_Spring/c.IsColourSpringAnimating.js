@@ -1,6 +1,6 @@
 export const config = {
   listName: "Is colour spring animating",
-  displayText: "Colour spring {0} is animating",
+  displayText: "Colour spring \"{0}\" is animating",
   description: "True if any channel in the named colour spring is animating.",
   isInvertible: true,
   params: [

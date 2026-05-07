@@ -1,6 +1,6 @@
 export const config = {
   listName: "On spring started",
-  displayText: "On spring {0} started",
+  displayText: "On spring \"{0}\" started",
   description: "Triggered when a named spring begins animating. Leave the id empty to catch any spring.",
   isTrigger: true,
   params: [
@@ -10,5 +10,5 @@ export const config = {
 
 export default function (springId) {
   const value = String(springId ?? "").trim();
-  return !value || this._getLastSpringId() === value;
+  return !value || this._lastStartedSpringId === value;
 }

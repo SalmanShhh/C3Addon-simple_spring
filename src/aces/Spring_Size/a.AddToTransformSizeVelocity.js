@@ -1,6 +1,6 @@
 export const config = {
   listName: "Velocity: Add to size spring",
-  displayText: "Add ({1}, {2}) to transform size spring {0} velocity",
+  displayText: "Add ({1}, {2}) to transform size spring \"{0}\" velocity",
   description: "Add a velocity impulse to a transform size spring.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for this transform spring.", type: "string", initialValue: '"main"' },

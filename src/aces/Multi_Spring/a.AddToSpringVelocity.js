@@ -1,6 +1,6 @@
 export const config = {
   listName: "Velocity: Add to named spring",
-  displayText: "Add {1} to spring {0} velocity",
+  displayText: "Add {1} to spring \"{0}\" velocity",
   description: "Add an impulse to a named spring's current velocity.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for the spring to update.", type: "string", initialValue: '"main"' },

@@ -1,6 +1,6 @@
 export const config = {
   listName: "Settings: Set spring",
-  displayText: "Set spring {0} settings to stiffness {1}, damping {2}, precision {3}",
+  displayText: "Set spring \"{0}\" settings to stiffness {1}, damping {2}, precision {3}",
   description: "Override stiffness, damping, and precision for a named spring. New springs inherit the behavior's default stiffness, damping, and precision set in the properties panel.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for the spring to configure.", type: "string", initialValue: '"main"' },

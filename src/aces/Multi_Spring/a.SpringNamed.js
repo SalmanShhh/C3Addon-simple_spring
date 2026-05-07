@@ -1,6 +1,6 @@
 export const config = {
-  listName: "Start: Named spring",
-  displayText: "Spring {0} ({1}) from {2} to {3} (mode: {4})",
+  listName: "Apply spring",
+  displayText: "Spring \"{0}\" ({1}) from {2} to {3} (mode: {4})",
   description: "Spring a named value from a start point to a target. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for the spring.", type: "string", initialValue: '"main"' },

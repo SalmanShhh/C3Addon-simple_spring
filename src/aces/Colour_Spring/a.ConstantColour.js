@@ -1,6 +1,6 @@
 export const config = {
-  listName: "Constant: Set colour spring",
-  displayText: "Set constant colour spring {0} target to ({2}, {3}, {4}) in {1}, apply to properties: {5}",
+  listName: "Apply Constant: Set colour spring",
+  displayText: "Constant Spring \"{0}\" property Colour to ({2}, {3}, {4}) in {1}, (Apply to Property: {5})",
   description: "Enable or update a constant colour spring, springing toward the given target each tick. New springs inherit the behavior's default stiffness, damping, and precision. Use the Settings ACE to override per spring. Use Pause/Stop playback ACEs to deactivate.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for the colour spring.", type: "string", initialValue: '"main"' },

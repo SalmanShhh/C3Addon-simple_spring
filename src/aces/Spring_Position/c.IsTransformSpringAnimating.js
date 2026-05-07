@@ -1,6 +1,6 @@
 export const config = {
   listName: "Is transform spring animating",
-  displayText: "{1} spring {0} is animating",
+  displayText: "{1} spring \"{0}\" is animating",
   description: "True if the selected transform spring is currently animating.",
   isInvertible: true,
   params: [

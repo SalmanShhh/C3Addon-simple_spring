@@ -1,6 +1,6 @@
 export const config = {
   listName: "End Value: Transform size spring",
-  displayText: "Set transform size spring {0} end value to ({1}, {2})",
+  displayText: "Set transform size spring \"{0}\" end value to ({1}, {2})",
   description: "Overwrite the end value of a transform size spring.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for this transform spring.", type: "string", initialValue: '"main"' },

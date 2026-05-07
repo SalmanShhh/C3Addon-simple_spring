@@ -1,7 +1,7 @@
 export const config = {
-  listName: "Start: Transform position XYZ spring",
-  displayText: "Spring position {0} from ({1}, {2}, {3}) to ({4}, {5}, {6})",
-  description: "Position spring action using explicit start and end values, including optional Z channel, without applying to the object.",
+  listName: "Apply Position spring",
+  displayText: "Spring position \"{0}\" from ({1}, {2}, {3}) to ({4}, {5}, {6}), Apply to Property ({7})",
+  description: "Position spring action using explicit start and end values, including optional Z channel, with optional apply-to-properties.",
   isAsync: true,
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for this transform spring.", type: "string", initialValue: '"main"' },
@@ -11,11 +11,12 @@ export const config = {
     { id: "toA", name: "To X", desc: "To X.", type: "number", initialValue: "0" },
     { id: "toB", name: "To Y", desc: "To Y.", type: "number", initialValue: "0" },
     { id: "toC", name: "To Z", desc: "To Z.", type: "number", initialValue: "0" },
+    { id: "applyToProperties", name: "Apply To Properties", desc: "Apply the sprung transform to the instance properties.", type: "boolean", initialValue: "false" },
   ],
 };
 
-export default async function (springId, fromA, fromB, fromC, toA, toB, toC) {
+export default async function (springId, fromA, fromB, fromC, toA, toB, toC, applyToProperties) {
   await this._runSpringActionWithOptionalWait(springId, true, () => {
-    this._springPositionFromToId(springId, fromA, fromB, fromC, toA, toB, toC, false);
+    this._springPositionFromToId(springId, fromA, fromB, fromC, toA, toB, toC, !!applyToProperties);
   });
 }

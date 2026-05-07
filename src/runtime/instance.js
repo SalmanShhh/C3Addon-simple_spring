@@ -3,6 +3,7 @@ import AddonTypeMap from "../../template/addonTypeMap.js";
 
 export default function (parentClass) {
   return class extends parentClass {
+    // Initialize runtime spring state, trigger bookkeeping, and mesh effect state.
     constructor() {
       super();
       const props = this._getInitProperties() || [];
@@ -11,7 +12,9 @@ export default function (parentClass) {
       this._lastTriggeredSpringId = this._defaultSpringId;
       this._lastCompletedSpringId = this._defaultSpringId;
       this._lastStartedSpringId = this._defaultSpringId;
+      this._lastStoppedSpringId = this._defaultSpringId;
       this._springs = new Map();
+      this._colourSpringSpaces = new Map();
       this._autoApplyColourSpringIds = new Set();
       this._autoApplyTransformPositionSpringIds = new Set();
       this._autoApplyTransformSizeSpringIds = new Set();
@@ -63,23 +66,34 @@ export default function (parentClass) {
       this._meshSwayPhase = 0;
 
       this._setTicking(true);
+      this._setTicking2(true);
     }
 
+    _isSpringIdAnimating(id) {
+      const spring = this._getSpring(id, false);
+      return !!spring && spring.isAnimating;
+    }
+
+    // Resolve once all related springs for the requested public spring id are done animating.
     _waitForSpringCompletion(springId) {
       const normalizedId = this._normalizeSpringId(springId);
-      const spring = this._getSpring(normalizedId, false);
+      const relatedIds = this._getRelatedSpringIds(normalizedId);
+      const activeRelatedIds = relatedIds.filter((id) => this._isSpringIdAnimating(id));
 
-      if (!spring || !spring.isAnimating) {
+      if (!activeRelatedIds.length) {
         return Promise.resolve();
       }
 
-      return new Promise((resolve) => {
-        const waiters = this._springCompletionWaiters.get(normalizedId) || new Set();
-        waiters.add(resolve);
-        this._springCompletionWaiters.set(normalizedId, waiters);
-      });
+      return Promise.all(activeRelatedIds.map((id) => {
+        return new Promise((resolve) => {
+          const waiters = this._springCompletionWaiters.get(id) || new Set();
+          waiters.add(resolve);
+          this._springCompletionWaiters.set(id, waiters);
+        });
+      }));
     }
 
+    // Flush all queued completion promises for a spring that has just finished.
     _resolveSpringCompletionWaiters(springId) {
       const normalizedId = this._normalizeSpringId(springId);
       const waiters = this._springCompletionWaiters.get(normalizedId);
@@ -93,6 +107,7 @@ export default function (parentClass) {
       }
     }
 
+    // Optionally serialize spring actions so each one waits for all related spring channels to settle.
     async _runSpringActionWithOptionalWait(springId, waitForPreviousActions, startFn) {
       const normalizedId = this._normalizeSpringId(springId);
 
@@ -120,6 +135,7 @@ export default function (parentClass) {
       }
     }
 
+    // Main per-frame update for non-constant springs and their auto-applied outputs.
     _tick() {
       if (!this._isEnabled) return;
 
@@ -132,27 +148,28 @@ export default function (parentClass) {
           this._activeSpringIds.delete(springId);
           continue;
         }
+        if (spring.alwaysSpringEnabled) continue; // Constant springs are ticked in _tick2
         this._tickSpring(spring, dt);
         this._refreshSpringActiveState(spring);
       }
 
       const activeColourSpringId = this._getSingleActiveSpringId(this._autoApplyColourSpringIds);
-      if (activeColourSpringId) {
+      if (activeColourSpringId && !this._getSpring(this._colourSpringChannelId(activeColourSpringId, "r"), false)?.alwaysSpringEnabled) {
         this._applySprungColourToObject(activeColourSpringId);
       }
 
       const activePositionSpringId = this._getSingleActiveSpringId(this._autoApplyTransformPositionSpringIds);
-      if (activePositionSpringId) {
+      if (activePositionSpringId && !this._getSpring(this._transformSpringChannelId("position", activePositionSpringId, "x"), false)?.alwaysSpringEnabled) {
         this._applySprungPositionToObject(activePositionSpringId);
       }
 
       const activeSizeSpringId = this._getSingleActiveSpringId(this._autoApplyTransformSizeSpringIds);
-      if (activeSizeSpringId) {
+      if (activeSizeSpringId && !this._getSpring(this._transformSpringChannelId("size", activeSizeSpringId, "w"), false)?.alwaysSpringEnabled) {
         this._applySprungSizeToObject(activeSizeSpringId);
       }
 
       const activeAngleSpringId = this._getSingleActiveSpringId(this._autoApplyTransformAngleSpringIds);
-      if (activeAngleSpringId) {
+      if (activeAngleSpringId && !this._getSpring(this._transformSpringChannelId("angle", activeAngleSpringId, "a"), false)?.alwaysSpringEnabled) {
         this._applySprungAngleToObject(activeAngleSpringId);
       }
 
@@ -161,6 +178,74 @@ export default function (parentClass) {
       }
     }
 
+    // Post-event tick for constant springs so event-sheet property changes are seen first.
+    _tick2() {
+      if (!this._isEnabled) return;
+
+      const dt = Math.min(this.instance.runtime.dt, 0.067);
+
+      // Before ticking constant springs, resync each constant auto-apply spring from the
+      // current object value. This picks up property changes made during events or _tick().
+      const activeSizeId = this._getSingleActiveSpringId(this._autoApplyTransformSizeSpringIds);
+      const isSizeConstant = activeSizeId
+        ? !!this._getSpring(this._transformSpringChannelId("size", activeSizeId, "w"), false)?.alwaysSpringEnabled
+        : false;
+      if (isSizeConstant) {
+        const current = this._getTransformCurrentValues("size");
+        this._forEachTransformChannel("size", activeSizeId, (channelId, _ch, index) => {
+          this._syncSpringToCurrentValueIfDrifted(channelId, current[index], 0.5, true);
+        });
+      }
+
+      const activePositionId = this._getSingleActiveSpringId(this._autoApplyTransformPositionSpringIds);
+      const isPositionConstant = activePositionId
+        ? !!this._getSpring(this._transformSpringChannelId("position", activePositionId, "x"), false)?.alwaysSpringEnabled
+        : false;
+      if (isPositionConstant) {
+        const current = this._getTransformCurrentValues("position");
+        this._forEachTransformChannel("position", activePositionId, (channelId, _ch, index) => {
+          this._syncSpringToCurrentValueIfDrifted(channelId, current[index]);
+        });
+      }
+
+      const activeAngleId = this._getSingleActiveSpringId(this._autoApplyTransformAngleSpringIds);
+      const isAngleConstant = activeAngleId
+        ? !!this._getSpring(this._transformSpringChannelId("angle", activeAngleId, "a"), false)?.alwaysSpringEnabled
+        : false;
+      if (isAngleConstant) {
+        const current = this._getTransformCurrentValues("angle");
+        this._forEachTransformChannel("angle", activeAngleId, (channelId, _ch, index) => {
+          this._syncAngleSpringToCurrentValueIfDrifted(channelId, current[index], 0.5, true);
+        });
+      }
+
+      const activeColourId = this._getSingleActiveSpringId(this._autoApplyColourSpringIds);
+      const isColourConstant = activeColourId
+        ? !!this._getSpring(this._colourSpringChannelId(activeColourId, "r"), false)?.alwaysSpringEnabled
+        : false;
+      if (isColourConstant) {
+        const currentColour = this._getObjectColourRgb255();
+        this._forEachColourChannel(activeColourId, (channelId, _ch, index) => {
+          this._syncSpringToCurrentValueIfDrifted(channelId, currentColour[index], 0.5, true);
+        });
+      }
+
+      // Tick constant springs
+      for (const springId of this._activeSpringIds) {
+        const spring = this._getSpring(springId, false);
+        if (!spring || !spring.alwaysSpringEnabled) continue;
+        this._tickSpring(spring, dt);
+        this._refreshSpringActiveState(spring);
+      }
+
+      // Apply constant auto-apply springs with updated values
+      if (isSizeConstant) this._applySprungSizeToObject(activeSizeId);
+      if (isPositionConstant) this._applySprungPositionToObject(activePositionId);
+      if (isAngleConstant) this._applySprungAngleToObject(activeAngleId);
+      if (isColourConstant) this._applySprungColourToObject(activeColourId);
+    }
+
+    // Create one scalar spring channel with the current global defaults.
     _createSpring(id) {
       const springId = this._normalizeSpringId(id);
       const spring = {
@@ -177,6 +262,7 @@ export default function (parentClass) {
         prevValue: 0,
         alwaysSpringEnabled: false,
         alwaysSpringMode: 0,
+        pendingReachedAfterStart: false,
         stiffness: this._stiffness,
         damping: this._damping,
         precision: this._precision,
@@ -225,6 +311,7 @@ export default function (parentClass) {
 
     _removeSpring(id) {
       const springId = this._normalizeSpringId(id);
+      this._colourSpringSpaces.delete(springId);
       if (springId === this._defaultSpringId) {
         const spring = this._getSpring(springId, true);
         this._resetSpringState(spring, 0);
@@ -252,9 +339,11 @@ export default function (parentClass) {
       spring.time = 0;
       spring.steps = 0;
       spring.isAnimating = false;
+      spring.pendingReachedAfterStart = false;
       this._refreshSpringActiveState(spring);
     }
 
+    // Snap a spring to its target and release any completion waiters.
     _finishSpring(spring) {
       spring.value = spring.to;
       spring.smoothValue = spring.to;
@@ -266,6 +355,7 @@ export default function (parentClass) {
       this._resolveSpringCompletionWaiters(spring.id);
     }
 
+    // Advance one fixed spring simulation step, including shortest-path angle motion when enabled.
     _stepSpringPhysics(spring) {
       let targetValue = spring.to;
 
@@ -282,6 +372,115 @@ export default function (parentClass) {
       spring.value += spring.velocity;
     }
 
+    // Measure remaining distance to the target, using wrap-aware distance for angle springs.
+    _getSpringTargetDistance(spring) {
+      if (!spring) {
+        return 0;
+      }
+
+      if (spring.alwaysSpringMode === 1) {
+        let diff = spring.to - spring.value;
+        while (diff > 180) diff -= 360;
+        while (diff < -180) diff += 360;
+        return Math.abs(diff);
+      }
+
+      return Math.abs(spring.to - spring.value);
+    }
+
+    // Collapse internal channel springs back to one public spring id so Colour/Position/Size
+    // only fire a single reached-target trigger once the whole grouped spring has settled.
+    _getGroupedSpringTriggerInfo(springId) {
+      const normalizedId = this._normalizeSpringId(springId);
+
+      if (normalizedId.startsWith("__colour__:")) {
+        const parts = normalizedId.split(":");
+        const publicId = this._normalizeSpringId(parts[1]);
+        const leaderId = this._colourSpringChannelId(publicId, "r");
+        const memberIds = [
+          this._colourSpringChannelId(publicId, "r"),
+          this._colourSpringChannelId(publicId, "g"),
+          this._colourSpringChannelId(publicId, "b"),
+        ];
+        return {
+          publicId,
+          isGrouped: true,
+          leaderId,
+          memberIds,
+          isLeader: normalizedId === leaderId,
+          hasReachedTarget: this._hasColourSpringReachedTargetId(publicId),
+        };
+      }
+
+      if (normalizedId.startsWith("__transform__:")) {
+        const parts = normalizedId.split(":");
+        const transformType = this._normalizeTransformSpringType(parts[1]);
+        const publicId = this._normalizeSpringId(parts[2]);
+        const leaderChannel = this._getTransformChannels(transformType)[0] || "";
+        const leaderId = this._transformSpringChannelId(transformType, publicId, leaderChannel);
+        const memberIds = this._getTransformChannels(transformType).map((channel) =>
+          this._transformSpringChannelId(transformType, publicId, channel)
+        );
+        return {
+          publicId,
+          isGrouped: true,
+          leaderId,
+          memberIds,
+          isLeader: normalizedId === leaderId,
+          hasReachedTarget: this._hasTransformSpringReachedTargetId(transformType, publicId),
+        };
+      }
+
+      return {
+        publicId: this._toPublicSpringId(normalizedId),
+        isGrouped: false,
+        leaderId: normalizedId,
+        memberIds: [normalizedId],
+        isLeader: true,
+        hasReachedTarget: this._hasSpringReachedTarget(normalizedId),
+      };
+    }
+
+    _setPendingReachedAfterStartForGroupedSpring(info, pending) {
+      if (!info || !Array.isArray(info.memberIds)) {
+        return;
+      }
+
+      for (const memberId of info.memberIds) {
+        const memberSpring = this._getSpring(memberId, false);
+        if (memberSpring) {
+          memberSpring.pendingReachedAfterStart = !!pending;
+        }
+      }
+    }
+
+    _hasPendingReachedAfterStartForGroupedSpring(info) {
+      if (!info || !Array.isArray(info.memberIds)) {
+        return false;
+      }
+
+      for (const memberId of info.memberIds) {
+        const memberSpring = this._getSpring(memberId, false);
+        if (memberSpring && memberSpring.pendingReachedAfterStart) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // Grouped springs should emit reached once when the whole group has settled,
+    // regardless of which internal channel happened to finish last.
+    _shouldTriggerReachedForSpringId(springId) {
+      const info = this._getGroupedSpringTriggerInfo(springId);
+      if (info.isGrouped) {
+        return info.hasReachedTarget && this._hasPendingReachedAfterStartForGroupedSpring(info);
+      }
+
+      return info.isLeader && info.hasReachedTarget;
+    }
+
+    // Tick a single spring, auto-resume constant springs, and emit start/reached events on state changes.
     _tickSpring(spring, dt) {
       if (spring.isPaused) {
         return;
@@ -292,6 +491,8 @@ export default function (parentClass) {
         const speed = Math.abs(spring.velocity);
         if (dist >= spring.precision || speed >= spring.precision) {
           spring.isAnimating = true;
+          this._lastStartedSpringId = this._toPublicSpringId(spring.id);
+          this._triggerSpringEvent("OnStarted", "OnSpringStarted", spring.id);
         }
       }
 
@@ -312,13 +513,17 @@ export default function (parentClass) {
       const t = time60 - spring.steps;
       spring.smoothValue = spring.prevValue + (spring.value - spring.prevValue) * t;
 
-      const dist = Math.abs(spring.to - spring.value);
+      const dist = this._getSpringTargetDistance(spring);
       const speed = Math.abs(spring.velocity);
 
       if (dist < spring.precision && speed < spring.precision) {
         this._finishSpring(spring);
-        this._lastCompletedSpringId = spring.id;
-        this._triggerSpringEvent("OnReachedTarget", "OnSpringReachedTarget", spring.id);
+        // Multi-channel springs finish per channel, but the public trigger should still fire once.
+        if (this._shouldTriggerReachedForSpringId(spring.id)) {
+          const info = this._getGroupedSpringTriggerInfo(spring.id);
+          this._lastCompletedSpringId = info.publicId;
+          this._triggerSpringEvent("OnReachedTarget", "OnSpringReachedTarget", info.leaderId);
+        }
       }
 
       if (!isFinite(spring.value)) {
@@ -326,15 +531,75 @@ export default function (parentClass) {
       }
     }
 
+    // Fire a named CAW trigger through both the local event bus and Construct runtime.
     _trigger(method) {
       this.dispatch(method);
       super._trigger(self.C3[AddonTypeMap[addonType]][id].Cnds[method]);
     }
 
+    // Update spring-event bookkeeping before firing the legacy and Multi Spring trigger conditions.
     _triggerSpringEvent(legacyMethod, multiMethod, springId) {
-      this._lastTriggeredSpringId = springId;
+      const info = this._getGroupedSpringTriggerInfo(springId);
+
+      // Grouped springs (colour/position/size) run multiple channels, but should fire lifecycle
+      // triggers once per public spring id, so only the leader channel dispatches them.
+      if (info.isGrouped && !info.isLeader) {
+        return;
+      }
+
+      if (multiMethod === "OnSpringStarted") {
+        if (info.isGrouped) {
+          this._setPendingReachedAfterStartForGroupedSpring(info, true);
+        } else {
+          const spring = this._getSpring(springId, false);
+          if (spring) {
+            spring.pendingReachedAfterStart = true;
+          }
+        }
+      } else if (multiMethod === "OnSpringReachedTarget") {
+        if (info.isGrouped) {
+          this._setPendingReachedAfterStartForGroupedSpring(info, false);
+        } else {
+          const spring = this._getSpring(springId, false);
+          if (spring) {
+            spring.pendingReachedAfterStart = false;
+          }
+        }
+      }
+
+      this._lastTriggeredSpringId = this._toPublicSpringId(springId);
       this._trigger(legacyMethod);
       this._trigger(multiMethod);
+    }
+
+    // Guarantee a reached-target trigger after an explicitly stopped or snapped spring that had started.
+    _triggerReachedIfPendingAfterStart(spring) {
+      if (!spring) {
+        return;
+      }
+
+      const info = this._getGroupedSpringTriggerInfo(spring.id);
+
+      if (info.isGrouped) {
+        if (!this._hasPendingReachedAfterStartForGroupedSpring(info) || !info.hasReachedTarget) {
+          return;
+        }
+
+        this._lastCompletedSpringId = info.publicId;
+        this._triggerSpringEvent("OnReachedTarget", "OnSpringReachedTarget", info.leaderId);
+        return;
+      }
+
+      if (!spring.pendingReachedAfterStart) {
+        return;
+      }
+
+      if (!this._shouldTriggerReachedForSpringId(spring.id)) {
+        return;
+      }
+
+      this._lastCompletedSpringId = this._toPublicSpringId(spring.id);
+      this._triggerSpringEvent("OnReachedTarget", "OnSpringReachedTarget", spring.id);
     }
 
     on(tag, callback, options) {
@@ -344,6 +609,7 @@ export default function (parentClass) {
       this.events[tag].push({ callback, options });
     }
 
+    // Remove a specific event callback for a tag.
     off(tag, callback) {
       if (this.events[tag]) {
         this.events[tag] = this.events[tag].filter(
@@ -352,6 +618,7 @@ export default function (parentClass) {
       }
     }
 
+    // Dispatch local callbacks and honor optional condition params/once semantics.
     dispatch(tag) {
       if (this.events[tag]) {
         this.events[tag].forEach((event) => {
@@ -376,6 +643,7 @@ export default function (parentClass) {
 
     // --- ACE Methods ---
 
+  // Start (or restart) a spring from explicit from/to values.
     _springFromToId(id, from, to) {
       const spring = this._getSpring(id, true);
       from = Number(from);
@@ -394,7 +662,7 @@ export default function (parentClass) {
       this._refreshSpringActiveState(spring);
 
       if (!wasAnimating) {
-        this._lastStartedSpringId = spring.id;
+        this._lastStartedSpringId = this._toPublicSpringId(spring.id);
         this._triggerSpringEvent("OnStarted", "OnSpringStarted", spring.id);
       }
     }
@@ -403,6 +671,7 @@ export default function (parentClass) {
       this._springFromToId(this._defaultSpringId, from, to);
     }
 
+    // Spring from current value toward a target, with optional shortest-path angle mode.
     _springToId(id, to, mode) {
       const spring = this._getSpring(id, true);
       to = Number(to);
@@ -437,7 +706,7 @@ export default function (parentClass) {
       this._refreshSpringActiveState(spring);
 
       if (!wasAnimating) {
-        this._lastStartedSpringId = spring.id;
+        this._lastStartedSpringId = this._toPublicSpringId(spring.id);
         this._triggerSpringEvent("OnStarted", "OnSpringStarted", spring.id);
       }
     }
@@ -446,6 +715,7 @@ export default function (parentClass) {
       this._springToId(this._defaultSpringId, to, mode);
     }
 
+    // Angle-specific start that normalizes to 0..360 and chooses shortest direction.
     _springFromToAngleId(id, from, to) {
       const spring = this._getSpring(id, true);
       from = Number(from) % 360;
@@ -471,7 +741,7 @@ export default function (parentClass) {
       this._refreshSpringActiveState(spring);
 
       if (!wasAnimating) {
-        this._lastStartedSpringId = spring.id;
+        this._lastStartedSpringId = this._toPublicSpringId(spring.id);
         this._triggerSpringEvent("OnStarted", "OnSpringStarted", spring.id);
       }
     }
@@ -510,10 +780,138 @@ export default function (parentClass) {
       this._getSpring(id, true).precision = value;
     }
 
+    _simulateSpringSettleDuration(stiffness, damping, precision, maxSeconds = 10) {
+      const target = 1;
+      let value = 0;
+      let velocity = 0;
+      let maxOvershoot = 0;
+      const maxSteps = Math.max(1, Math.ceil(maxSeconds * 60));
+
+      for (let step = 1; step <= maxSteps; step++) {
+        const displacement = target - value;
+        velocity += displacement * stiffness;
+        velocity *= damping;
+        value += velocity;
+
+        if (value > target) {
+          maxOvershoot = Math.max(maxOvershoot, value - target);
+        }
+
+        const dist = Math.abs(target - value);
+        const speed = Math.abs(velocity);
+        if (dist < precision && speed < precision) {
+          return { duration: step / 60, overshoot: maxOvershoot };
+        }
+      }
+
+      return { duration: maxSteps / 60, overshoot: maxOvershoot };
+    }
+
+    _parseDurationBounceProfile(profile) {
+      if (typeof profile === "string") {
+        const value = profile.trim().toLowerCase();
+        if (value === "0" || value === "minimal" || value === "no_bounce") return 0;
+        if (value === "1" || value === "balanced") return 1;
+        if (value === "2" || value === "bouncy") return 2;
+        if (value === "3" || value === "very_bouncy") return 3;
+      }
+
+      const n = Math.floor(Number(profile));
+      if (!Number.isFinite(n)) return 1;
+      return Math.max(0, Math.min(3, n));
+    }
+
+    // Search for stiffness/damping values that best match a requested settle duration and bounce profile.
+    _findSpringSettingsForDuration(durationSeconds, precision = this._precision, bounceProfile = 1) {
+      const targetDuration = Math.max(1 / 60, Number(durationSeconds) || 0);
+      const targetPrecision = Math.max(0.0001, Math.min(1, Number(precision) || this._precision));
+      const profile = this._parseDurationBounceProfile(bounceProfile);
+      const dampingCandidatesByProfile = {
+        0: [0.82, 0.86, 0.9, 0.92, 0.94, 0.96, 0.97, 0.98, 0.99],
+        1: [0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.84, 0.88, 0.9, 0.92, 0.94, 0.96, 0.97, 0.98],
+        2: [0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.84],
+        3: [0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7],
+      };
+      const dampingCandidates = dampingCandidatesByProfile[profile] || dampingCandidatesByProfile[1];
+
+      const profileTuning = {
+        0: { overshootTarget: 0.0, overshootWeight: 3.0 },
+        1: { overshootTarget: 0.06, overshootWeight: 1.0 },
+        2: { overshootTarget: 0.16, overshootWeight: 0.6 },
+        3: { overshootTarget: 0.3, overshootWeight: 0.3 },
+      }[profile] || { overshootTarget: 0.06, overshootWeight: 1.0 };
+
+      let best = {
+        stiffness: 1.25,
+        damping: 0.9,
+        precision: targetPrecision,
+        score: Infinity,
+        error: Infinity,
+        overshoot: Infinity,
+      };
+
+      for (const damping of dampingCandidates) {
+        let low = 0.001;
+        let high = 0.001;
+        let highResult = this._simulateSpringSettleDuration(high, damping, targetPrecision, Math.max(10, targetDuration * 4));
+
+        while (highResult.duration > targetDuration && high < 100) {
+          low = high;
+          high *= 2;
+          highResult = this._simulateSpringSettleDuration(high, damping, targetPrecision, Math.max(10, targetDuration * 4));
+        }
+
+        let lowBound = 0.001;
+        let highBound = high;
+        for (let i = 0; i < 18; i++) {
+          const mid = (lowBound + highBound) / 2;
+          const result = this._simulateSpringSettleDuration(mid, damping, targetPrecision, Math.max(10, targetDuration * 4));
+          if (result.duration > targetDuration) {
+            lowBound = mid;
+          } else {
+            highBound = mid;
+          }
+        }
+
+        const candidateStiffnesses = [lowBound, highBound, high];
+        for (const stiffness of candidateStiffnesses) {
+          const result = this._simulateSpringSettleDuration(stiffness, damping, targetPrecision, Math.max(10, targetDuration * 4));
+          const error = Math.abs(result.duration - targetDuration);
+          const overshootError = Math.abs(result.overshoot - profileTuning.overshootTarget);
+          const score = error + (overshootError * profileTuning.overshootWeight);
+
+          if (score < best.score || (score === best.score && error < best.error)) {
+            best = {
+              stiffness,
+              damping,
+              precision: targetPrecision,
+              score,
+              error,
+              overshoot: result.overshoot,
+            };
+          }
+        }
+      }
+
+      return {
+        stiffness: best.stiffness,
+        damping: best.damping,
+        precision: best.precision,
+      };
+    }
+
+    _setSpringSettingsFromDurationId(id, durationSeconds, precision = this._precision, bounceProfile = 1) {
+      const settings = this._findSpringSettingsForDuration(durationSeconds, precision, bounceProfile);
+      this._setStiffness(settings.stiffness, id);
+      this._setDamping(settings.damping, id);
+      this._setPrecision(settings.precision, id);
+    }
+
     _setEnabled(v) {
       this._isEnabled = !!v;
     }
 
+    // Stop and pin a spring at its current value, then emit stop (+ optional pending reached) triggers.
     _stopAtCurrentValueId(id) {
       const spring = this._getSpring(id, false);
       if (!spring) return;
@@ -525,11 +923,14 @@ export default function (parentClass) {
       spring.isAnimating = false;
       spring.time = 0;
       spring.steps = 0;
+      this._lastStoppedSpringId = this._toPublicSpringId(spring.id);
       this._refreshSpringActiveState(spring);
       this._resolveSpringCompletionWaiters(spring.id);
       this._triggerSpringEvent("OnStopped", "OnSpringStopped", spring.id);
+      this._triggerReachedIfPendingAfterStart(spring);
     }
 
+    // Return all ids linked to a public spring id (main + colour + transform channels).
     _getRelatedSpringIds(id) {
       const springId = this._normalizeSpringId(id);
       return [
@@ -579,8 +980,10 @@ export default function (parentClass) {
       }
     }
 
+    // Remove one public spring id and all its internal channel springs.
     _clearSpringById(id) {
       const springId = this._normalizeSpringId(id);
+      this._colourSpringSpaces.delete(springId);
 
       this._autoApplyColourSpringIds.delete(springId);
       this._autoApplyTransformPositionSpringIds.delete(springId);
@@ -592,6 +995,7 @@ export default function (parentClass) {
       }
     }
 
+    // Remove all springs, auto-apply ownership, and queued async waiters.
     _clearAllSprings() {
       const ids = Array.from(this._springs.keys());
       for (const id of ids) {
@@ -599,6 +1003,7 @@ export default function (parentClass) {
       }
 
       this._autoApplyColourSpringIds.clear();
+      this._colourSpringSpaces.clear();
       this._autoApplyTransformPositionSpringIds.clear();
       this._autoApplyTransformSizeSpringIds.clear();
       this._autoApplyTransformAngleSpringIds.clear();
@@ -611,12 +1016,15 @@ export default function (parentClass) {
       this._stopAtCurrentValueId(this._defaultSpringId);
     }
 
+    // Snap immediately to the current target and emit stop/reached trigger flow.
     _snapToTargetId(id) {
       const spring = this._getSpring(id, false);
       if (!spring) return;
 
       this._finishSpring(spring);
+      this._lastStoppedSpringId = this._toPublicSpringId(spring.id);
       this._triggerSpringEvent("OnStopped", "OnSpringStopped", spring.id);
+      this._triggerReachedIfPendingAfterStart(spring);
     }
 
     _snapToTarget() {
@@ -663,15 +1071,16 @@ export default function (parentClass) {
       const spring = this._getSpring(id, true);
       spring.alwaysSpringEnabled = !!enabled;
       spring.to = Number(target);
-      spring.alwaysSpringMode = Number(mode);
+      spring.alwaysSpringMode = Number(mode) || 0;
 
-      if (enabled && !spring.isAnimating) {
-        spring.value = spring.to;
-        spring.smoothValue = spring.to;
-        spring.prevValue = spring.to;
-        spring.time = 0;
-        spring.steps = 0;
+      if (spring.alwaysSpringEnabled) {
+        const dist = Math.abs(spring.to - spring.value);
+        const speed = Math.abs(spring.velocity);
+        if (dist >= spring.precision || speed >= spring.precision) {
+          spring.isAnimating = true;
+        }
       }
+
       this._refreshSpringActiveState(spring);
     }
 
@@ -679,6 +1088,7 @@ export default function (parentClass) {
       this._setAlwaysSpringId(this._defaultSpringId, enabled, target, mode);
     }
 
+    // Configure or update a scalar "constant spring" channel behavior.
     _configureAlwaysSpringValueId(id, operation, target, mode = 0, initialValue = 0) {
       const normalizedOperation = Number(operation) || 0;
       if (!this._getSpring(id, false)) {
@@ -707,6 +1117,58 @@ export default function (parentClass) {
         }
       }
       this._refreshSpringActiveState(spring);
+    }
+
+    // Realign a spring to an externally changed value to prevent fighting manual property edits.
+    _syncSpringToCurrentValueIfDrifted(id, currentValue, tolerance = 0.001, preserveVelocity = false) {
+      const spring = this._getSpring(id, false);
+      if (!spring) return;
+
+      const current = Number(currentValue);
+      if (!Number.isFinite(current)) return;
+
+      const effectiveTolerance = Math.max(Number(tolerance) || 0, spring.precision || 0);
+      if (Math.abs(spring.smoothValue - current) <= effectiveTolerance) {
+        return;
+      }
+
+      spring.from = current;
+      spring.value = current;
+      spring.prevValue = current;
+      spring.smoothValue = current;
+      if (!preserveVelocity) {
+        spring.velocity = 0;
+      }
+      spring.time = 0;
+      spring.steps = 0;
+    }
+
+    // Resync an angle spring from the current object angle while preserving wrap-around continuity.
+    _syncAngleSpringToCurrentValueIfDrifted(id, currentAngle, tolerance = 0.5, preserveVelocity = true) {
+      const spring = this._getSpring(id, false);
+      if (!spring) return;
+
+      const current = Number(currentAngle);
+      if (!Number.isFinite(current)) return;
+
+      let diff = current - spring.smoothValue;
+      while (diff > 180) diff -= 360;
+      while (diff < -180) diff += 360;
+
+      const effectiveTolerance = Math.max(Number(tolerance) || 0, spring.precision || 0);
+      if (Math.abs(diff) <= effectiveTolerance) {
+        return;
+      }
+
+      spring.from = current;
+      spring.value = current;
+      spring.prevValue = current;
+      spring.smoothValue = current;
+      if (!preserveVelocity) {
+        spring.velocity = 0;
+      }
+      spring.time = 0;
+      spring.steps = 0;
     }
 
     _setAlwaysSpringTargetId(id, target) {
@@ -741,6 +1203,18 @@ export default function (parentClass) {
     _colourSpringChannelId(id, channel) {
       const springId = this._normalizeSpringId(id);
       return `__colour__:${springId}:${channel}`;
+    }
+
+    _setColourSpringSpaceId(id, colourSpace) {
+      const springId = this._normalizeSpringId(id);
+      const parsedSpace = this._parseColourSpace(colourSpace);
+      this._colourSpringSpaces.set(springId, parsedSpace);
+      return parsedSpace;
+    }
+
+    _getColourSpace(id) {
+      const springId = this._normalizeSpringId(id);
+      return this._colourSpringSpaces.get(springId) || "rgb";
     }
 
     _parseColourSpace(space) {
@@ -797,6 +1271,7 @@ export default function (parentClass) {
       return this._hueToRgb255Components(hue, c, x, m);
     }
 
+    // Convert editor/runtime colour inputs (RGB/HSL/HSV) into RGB 0..255 channels.
     _colourToRgb255(space, c1, c2, c3) {
       const parsedSpace = this._parseColourSpace(space);
 
@@ -826,6 +1301,7 @@ export default function (parentClass) {
       }
     }
 
+    // Keep one active colour auto-apply owner at a time, then optionally apply immediately.
     _finalizeColourSpringApply(id, applyToObject) {
       this._setColourSpringAutoApplyId(id, !!applyToObject);
       if (applyToObject) {
@@ -852,6 +1328,7 @@ export default function (parentClass) {
       }
     }
 
+    // For "Apply to properties", enforce single-owner behavior for a channel group.
     _setExclusiveAutoApplyId(idSet, id, enabled) {
       const springId = this._normalizeSpringId(id);
       if (enabled) {
@@ -863,7 +1340,9 @@ export default function (parentClass) {
       idSet.delete(springId);
     }
 
+    // Configure a 3-channel colour spring from current->target values.
     _springColourToId(id, colourSpace, c1, c2, c3, applyToObject = false) {
+      this._setColourSpringSpaceId(id, colourSpace);
       const values = this._colourToRgb255(colourSpace, c1, c2, c3);
       this._forEachColourChannel(id, (channelId, _ch, index) => {
         this._springToId(channelId, values[index], 0);
@@ -871,7 +1350,9 @@ export default function (parentClass) {
       this._finalizeColourSpringApply(id, applyToObject);
     }
 
+    // Configure a 3-channel colour spring from explicit from/to values.
     _springColourFromToId(id, colourSpace, from1, from2, from3, to1, to2, to3, applyToObject = false) {
+      this._setColourSpringSpaceId(id, colourSpace);
       const fromValues = this._colourToRgb255(colourSpace, from1, from2, from3);
       const toValues = this._colourToRgb255(colourSpace, to1, to2, to3);
       this._forEachColourChannel(id, (channelId, _ch, index) => {
@@ -880,11 +1361,24 @@ export default function (parentClass) {
       this._finalizeColourSpringApply(id, applyToObject);
     }
 
+    // Configure constant colour spring behavior per RGB channel.
     _configureColourAlwaysSpringId(id, operation, colourSpace, c1, c2, c3, applyToObject = false) {
+      this._setColourSpringSpaceId(id, colourSpace);
+      const normalizedOperation = Number(operation) || 0;
       const values = this._colourToRgb255(colourSpace, c1, c2, c3);
+      let currentColour = null;
+      if (applyToObject) {
+        currentColour = this._getObjectColourRgb255();
+      }
       this._forEachColourChannel(id, (channelId, _ch, index) => {
         const target = values[index];
-        this._configureAlwaysSpringValueId(channelId, operation, target, 0, this._getSpringValue(channelId) || target);
+        const initialValue = applyToObject && currentColour ? currentColour[index] : (this._getSpringValue(channelId) || target);
+
+        if (applyToObject && normalizedOperation === 0 && currentColour) {
+          this._syncSpringToCurrentValueIfDrifted(channelId, currentColour[index]);
+        }
+
+        this._configureAlwaysSpringValueId(channelId, normalizedOperation, target, 0, initialValue);
       });
       this._finalizeColourSpringApply(id, applyToObject);
     }
@@ -897,7 +1391,17 @@ export default function (parentClass) {
       });
     }
 
+    _setColourSpringSettingsFromDurationId(id, durationSeconds, precision = this._precision, bounceProfile = 1) {
+      const settings = this._findSpringSettingsForDuration(durationSeconds, precision, bounceProfile);
+      this._forEachColourChannel(id, (channelId) => {
+        this._setStiffness(settings.stiffness, channelId);
+        this._setDamping(settings.damping, channelId);
+        this._setPrecision(settings.precision, channelId);
+      });
+    }
+
     _resetColourSpringId(id, colourSpace, c1, c2, c3, applyToObject = false) {
+      this._setColourSpringSpaceId(id, colourSpace);
       const values = this._colourToRgb255(colourSpace, c1, c2, c3);
       this._forEachColourChannel(id, (channelId, _ch, index) => {
         this._resetToValueId(channelId, values[index]);
@@ -1033,37 +1537,27 @@ export default function (parentClass) {
     }
 
     _applySprungColourToObject(id) {
-      const r255 = this._getColourRed(id);
-      const g255 = this._getColourGreen(id);
-      const b255 = this._getColourBlue(id);
+      const r01 = this._clamp(this._getColourRed(id) / 255, 0, 1);
+      const g01 = this._clamp(this._getColourGreen(id) / 255, 0, 1);
+      const b01 = this._clamp(this._getColourBlue(id) / 255, 0, 1);
 
-      const r01 = this._clamp(r255 / 255, 0, 1);
-      const g01 = this._clamp(g255 / 255, 0, 1);
-      const b01 = this._clamp(b255 / 255, 0, 1);
-      const hex = this._getColourHex(id);
-
-      const methodNames = [
-        "setColor",
-        "SetColor",
-        "setColour",
-        "SetColour",
-        "setColorRgb",
-        "SetColorRgb",
-        "setUnpremultipliedColor",
-        "SetUnpremultipliedColor",
-      ];
-
-      const payloads = [
-        [[r01, g01, b01]],
-        [[r255, g255, b255]],
-        [r01, g01, b01],
-        [r255, g255, b255],
-        [{ r: r01, g: g01, b: b01 }],
-        [{ r: r255, g: g255, b: b255 }],
-        [hex],
-      ];
-
-      return this._tryApplyWithCache("colour", this._getApplyTargets(), methodNames, payloads);
+      const targets = this._getApplyTargets();
+      for (const target of targets) {
+        if (!target) continue;
+        try {
+          if ("colorRgb" in target) {
+            target.colorRgb = [r01, g01, b01];
+            return true;
+          }
+          if ("colourRgb" in target) {
+            target.colourRgb = [r01, g01, b01];
+            return true;
+          }
+        } catch (_) {
+          // Try next target.
+        }
+      }
+      return false;
     }
 
     _normalizeTransformSpringType(type) {
@@ -1180,6 +1674,7 @@ export default function (parentClass) {
       return null;
     }
 
+    // Query multiple likely object/world-info surfaces for transform values.
     _readTransformValue(methodNames, propertyNames, fallback = 0) {
       for (const target of this._getTransformTargets()) {
         const value = this._tryGetNumericFromTarget(target, methodNames, propertyNames);
@@ -1217,7 +1712,31 @@ export default function (parentClass) {
     }
 
     _getObjectAngle() {
-      return this._readTransformValue(["getAngle", "GetAngle"], ["angle", "_angle"], 0);
+      const radians = this._readTransformValue(["getAngle", "GetAngle"], ["angle", "_angle"], 0);
+      return (Number(radians) || 0) * (180 / Math.PI);
+    }
+
+    _getObjectColourRgb255() {
+      const targets = this._getApplyTargets();
+
+      for (const target of targets) {
+        if (!target) continue;
+
+        try {
+          const rgb = target.colorRgb ?? target.colourRgb;
+          if (Array.isArray(rgb) && rgb.length >= 3) {
+            const [r, g, b] = rgb;
+            if (Number.isFinite(r) && Number.isFinite(g) && Number.isFinite(b)) {
+              const scale = r <= 1 && g <= 1 && b <= 1 ? 255 : 1;
+              return [this._clamp(r * scale, 0, 255), this._clamp(g * scale, 0, 255), this._clamp(b * scale, 0, 255)];
+            }
+          }
+        } catch (_) {
+          // Try next target.
+        }
+      }
+
+      return [255, 255, 255];
     }
 
     _setTransformProperty(property, value) {
@@ -1234,6 +1753,7 @@ export default function (parentClass) {
       return false;
     }
 
+    // Apply transform position with method/signature probing and property fallback.
     _applyPosition(x, y, z = null) {
       const targets = this._getTransformTargets();
       const hasZ = z !== null && z !== undefined;
@@ -1280,6 +1800,7 @@ export default function (parentClass) {
       return didSet;
     }
 
+    // Apply transform size with method/signature probing and property fallback.
     _applySize(width, height, depth = null) {
       const w = Math.max(0, Number(width) || 0);
       const h = Math.max(0, Number(height) || 0);
@@ -1325,8 +1846,10 @@ export default function (parentClass) {
       return didSet;
     }
 
+    // Apply angle in radians to runtime surfaces while accepting degree inputs from spring logic.
     _applyAngle(angle) {
-      const a = Number(angle) || 0;
+      const degrees = Number(angle) || 0;
+      const a = degrees * (Math.PI / 180);
       const targets = this._getTransformTargets();
       const payloads = [[a]];
       const methodNames = ["setAngle", "SetAngle"];
@@ -1338,6 +1861,7 @@ export default function (parentClass) {
       return this._setTransformProperty("angle", a);
     }
 
+    // Lazily bootstrap transform channel springs from current object values.
     _ensurePositionSpringsFromObject(id) {
       const xId = this._transformSpringChannelId("position", id, "x");
       const yId = this._transformSpringChannelId("position", id, "y");
@@ -1352,6 +1876,7 @@ export default function (parentClass) {
       this._resetToValueId(zId, z);
     }
 
+    // Lazily bootstrap size channel springs from current object values.
     _ensureSizeSpringsFromObject(id) {
       const wId = this._transformSpringChannelId("size", id, "w");
       const hId = this._transformSpringChannelId("size", id, "h");
@@ -1366,6 +1891,7 @@ export default function (parentClass) {
       this._resetToValueId(dId, depth);
     }
 
+    // Lazily bootstrap angle channel spring from current object angle.
     _ensureAngleSpringFromObject(id) {
       const aId = this._transformSpringChannelId("angle", id, "a");
       if (this._getSpring(aId, false)) return;
@@ -1466,8 +1992,10 @@ export default function (parentClass) {
       this._getSpring(this._transformSpringChannelId("angle", id, "a"), true).to = Number(angle);
     }
 
+    // Configure a constant transform spring and keep its per-channel state in sync with the object when required.
     _configureTransformAlwaysSpringId(type, id, operation, targetA, targetB, targetC = 0, mode = 1, applyToObject = false) {
       const normalized = this._normalizeTransformSpringType(type);
+      const normalizedOperation = Number(operation) || 0;
       const targets = normalized === "angle"
         ? [Number(targetA)]
         : [Number(targetA), Number(targetB), Number(targetC)];
@@ -1476,9 +2004,13 @@ export default function (parentClass) {
       this._ensureTransformSpringsFromObjectId(normalized, id);
       // Keep channel behavior data-driven so updates only touch one transform map.
       this._forEachTransformChannel(normalized, id, (channelId, _channel, index) => {
+        if (applyToObject && normalized === "size" && normalizedOperation === 0) {
+          this._syncSpringToCurrentValueIfDrifted(channelId, currentValues[index], 0.5);
+        }
+
         this._configureAlwaysSpringValueId(
           channelId,
-          operation,
+          normalizedOperation,
           targets[index],
           normalized === "angle" ? Number(mode) : 0,
           currentValues[index],
@@ -1503,6 +2035,16 @@ export default function (parentClass) {
         this._setStiffness(stiffness, channelId);
         this._setDamping(damping, channelId);
         this._setPrecision(precision, channelId);
+      });
+    }
+
+    _setTransformSpringSettingsFromDurationId(type, id, durationSeconds, precision = this._precision, bounceProfile = 1) {
+      const normalized = this._normalizeTransformSpringType(type);
+      const settings = this._findSpringSettingsForDuration(durationSeconds, precision, bounceProfile);
+      this._forEachTransformChannel(normalized, id, (channelId) => {
+        this._setStiffness(settings.stiffness, channelId);
+        this._setDamping(settings.damping, channelId);
+        this._setPrecision(settings.precision, channelId);
       });
     }
 
@@ -2358,6 +2900,7 @@ export default function (parentClass) {
       }
     }
 
+    // Tick mesh spring physics, apply optional sway, and emit settled once all mesh energy is gone.
     _tickMesh(dt) {
       if (!this._ensureMeshSupport(false)) {
         this._meshEnabled = false;
@@ -2538,12 +3081,36 @@ export default function (parentClass) {
       return "";
     }
 
+    _toPublicSpringId(springId) {
+      const idValue = this._normalizeSpringId(springId);
+
+      if (idValue.startsWith("__colour__:")) {
+        const parts = idValue.split(":");
+        return parts[1] || this._defaultSpringId;
+      }
+
+      if (idValue.startsWith("__transform__:")) {
+        const parts = idValue.split(":");
+        return parts[2] || this._defaultSpringId;
+      }
+
+      return idValue;
+    }
+
     _getLastSpringId() {
       return this._lastTriggeredSpringId;
     }
 
     _getLastCompletedSpringId() {
       return this._lastCompletedSpringId;
+    }
+
+    _getLastStartedSpringId() {
+      return this._lastStartedSpringId;
+    }
+
+    _getLastStoppedSpringId() {
+      return this._lastStoppedSpringId;
     }
 
     _getSpringValue(id = this._defaultSpringId) {
@@ -2645,6 +3212,115 @@ export default function (parentClass) {
       return Math.max(0, Math.min(1, progress));
     }
 
+    _estimateSingleSpringTimeToTargetSeconds(spring, maxSeconds = 10) {
+      if (!spring) return 0;
+
+      const precision = Math.max(0.0001, Number(spring.precision) || this._precision || 0.01);
+      const maxSteps = Math.max(1, Math.ceil((Number(maxSeconds) || 10) * 60));
+
+      let value = Number(spring.value);
+      let velocity = Number(spring.velocity);
+      const target = Number(spring.to);
+      const stiffness = Number(spring.stiffness) || this._stiffness;
+      const damping = Number(spring.damping) || this._damping;
+
+      if (!Number.isFinite(value) || !Number.isFinite(velocity) || !Number.isFinite(target)) {
+        return 0;
+      }
+
+      const getDist = () => {
+        if (spring.alwaysSpringMode === 1) {
+          let diff = target - value;
+          while (diff > 180) diff -= 360;
+          while (diff < -180) diff += 360;
+          return Math.abs(diff);
+        }
+        return Math.abs(target - value);
+      };
+
+      if (getDist() < precision && Math.abs(velocity) < precision) {
+        return 0;
+      }
+
+      for (let step = 1; step <= maxSteps; step++) {
+        let targetValue = target;
+
+        if (spring.alwaysSpringMode === 1) {
+          let diff = target - value;
+          while (diff > 180) diff -= 360;
+          while (diff < -180) diff += 360;
+          targetValue = value + diff;
+        }
+
+        const displacement = targetValue - value;
+        velocity += displacement * stiffness;
+        velocity *= damping;
+        value += velocity;
+
+        const dist = getDist();
+        const speed = Math.abs(velocity);
+        if (dist < precision && speed < precision) {
+          return step / 60;
+        }
+      }
+
+      return -1;
+    }
+
+    // Estimate total settle time for a public spring id, including any internal transform/colour channel springs it owns.
+    _estimateSpringTimeToTargetSeconds(id = this._defaultSpringId, maxSeconds = 10) {
+      const springId = this._normalizeSpringId(id);
+      const directSpring = this._getSpring(springId, false);
+
+      const relatedSprings = [];
+      if (directSpring) {
+        relatedSprings.push(directSpring);
+      }
+
+      this._forEachColourChannel(springId, (channelId) => {
+        const spring = this._getSpring(channelId, false);
+        if (spring) {
+          relatedSprings.push(spring);
+        }
+      });
+
+      this._forEachTransformChannel("position", springId, (channelId) => {
+        const spring = this._getSpring(channelId, false);
+        if (spring) {
+          relatedSprings.push(spring);
+        }
+      });
+
+      this._forEachTransformChannel("size", springId, (channelId) => {
+        const spring = this._getSpring(channelId, false);
+        if (spring) {
+          relatedSprings.push(spring);
+        }
+      });
+
+      this._forEachTransformChannel("angle", springId, (channelId) => {
+        const spring = this._getSpring(channelId, false);
+        if (spring) {
+          relatedSprings.push(spring);
+        }
+      });
+
+      if (!relatedSprings.length) {
+        return 0;
+      }
+
+      let maxEstimate = 0;
+      for (const spring of relatedSprings) {
+        const estimate = this._estimateSingleSpringTimeToTargetSeconds(spring, maxSeconds);
+        if (estimate < 0) {
+          return -1;
+        }
+        maxEstimate = Math.max(maxEstimate, estimate);
+      }
+
+      return maxEstimate;
+    }
+
     _getProgress() {
       return this._getSpringProgress(this._defaultSpringId);
     }
@@ -2675,6 +3351,7 @@ export default function (parentClass) {
         meshSwaySpeed: this._meshSwaySpeed,
         meshSwayPhase: this._meshSwayPhase,
         autoApplyColourSpringIds: Array.from(this._autoApplyColourSpringIds),
+        colourSpringSpaces: Array.from(this._colourSpringSpaces.entries()),
         autoApplyTransformPositionSpringIds: Array.from(this._autoApplyTransformPositionSpringIds),
         autoApplyTransformSizeSpringIds: Array.from(this._autoApplyTransformSizeSpringIds),
         autoApplyTransformAngleSpringIds: Array.from(this._autoApplyTransformAngleSpringIds),
@@ -2709,6 +3386,13 @@ export default function (parentClass) {
       this._autoApplyColourSpringIds = new Set(
         (Array.isArray(o?.autoApplyColourSpringIds) ? o.autoApplyColourSpringIds : [])
           .map((springId) => this._normalizeSpringId(springId))
+      );
+      this._colourSpringSpaces = new Map(
+        (Array.isArray(o?.colourSpringSpaces) ? o.colourSpringSpaces : [])
+          .map(([springId, space]) => [
+            this._normalizeSpringId(springId),
+            this._parseColourSpace(space),
+          ])
       );
       this._autoApplyTransformPositionSpringIds = new Set(
         (Array.isArray(o?.autoApplyTransformPositionSpringIds) ? o.autoApplyTransformPositionSpringIds : [])
@@ -2847,11 +3531,6 @@ export default function (parentClass) {
             { name: "$focusSpringId", value: spring.id },
             { name: "$Action Queues", value: this._springActionQueueById.size },
             { name: "$Completion Waiters", value: this._springCompletionWaiters.size },
-            { name: "$isAnimating", value: spring.isAnimating },
-            { name: "$value", value: spring.value, onedit: v => { spring.value = +v; spring.smoothValue = +v; spring.prevValue = +v; } },
-            { name: "$from", value: spring.from },
-            { name: "$to", value: spring.to, onedit: v => { spring.to = +v; spring.isAnimating = true; } },
-            { name: "$velocity", value: spring.velocity, onedit: v => { spring.velocity = +v; spring.isAnimating = true; } },
             { name: "$stiffness", value: this._stiffness, onedit: v => this._stiffness = Math.max(0.001, +v) },
             { name: "$damping", value: this._damping, onedit: v => this._damping = Math.max(0, Math.min(1, +v)) },
             { name: "$precision", value: this._precision, onedit: v => this._precision = Math.max(0.0001, +v) },

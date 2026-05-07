@@ -1,6 +1,6 @@
 export const config = {
   listName: "Start Value: Transform position spring",
-  displayText: "Set transform position spring {0} start value to ({1}, {2}, {3})",
+  displayText: "Set transform position spring \"{0}\" start value to ({1}, {2}, {3})",
   description: "Overwrite the start value of a transform position spring.",
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id for this transform spring.", type: "string", initialValue: '"main"' },

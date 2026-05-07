@@ -1,7 +1,7 @@
 export const config = {
-  listName: "Is constant spring enabled",
-  displayText: "Spring \"{0}\" is running as a constant spring",
-  description: "True if the named spring is running in constant (always-on) mode.",
+  listName: "Is spring constant",
+  displayText: "Is Spring \"{0}\" constant",
+  description: "True if the named spring is currently configured as a constant spring.",
   isInvertible: true,
   params: [
     { id: "springId", name: "Spring ID", desc: "Unique id of the spring to test.", type: "string", initialValue: '"default"' },
