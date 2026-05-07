@@ -1683,15 +1683,97 @@ export default function (parentClass) {
       return fallback;
     }
 
+    _readPositionFromTuple(value, expectedLength) {
+      if (Array.isArray(value) && value.length >= expectedLength) {
+        const out = value.slice(0, expectedLength).map((v) => Number(v));
+        if (out.every((v) => Number.isFinite(v))) {
+          return out;
+        }
+      }
+
+      if (value && typeof value === "object") {
+        const x = Number(value.x);
+        const y = Number(value.y);
+        const z = Number(value.z);
+        if (expectedLength === 2 && Number.isFinite(x) && Number.isFinite(y)) {
+          return [x, y];
+        }
+        if (expectedLength === 3 && Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) {
+          return [x, y, z];
+        }
+      }
+
+      return null;
+    }
+
+    _getObjectPosition2d() {
+      const targets = this._getTransformTargets();
+      for (const target of targets) {
+        if (!target) continue;
+
+        const fn = target.getPosition || target.GetPosition;
+        if (typeof fn !== "function") continue;
+
+        try {
+          const value = fn.call(target);
+          const parsed = this._readPositionFromTuple(value, 2);
+          if (parsed) {
+            return parsed;
+          }
+        } catch (_) {
+          // Try next runtime surface.
+        }
+      }
+
+      return null;
+    }
+
+    _getObjectPosition3d() {
+      const targets = this._getTransformTargets();
+      for (const target of targets) {
+        if (!target) continue;
+
+        const fn = target.getPosition3d || target.GetPosition3d;
+        if (typeof fn !== "function") continue;
+
+        try {
+          const value = fn.call(target);
+          const parsed = this._readPositionFromTuple(value, 3);
+          if (parsed) {
+            return parsed;
+          }
+        } catch (_) {
+          // Try next runtime surface.
+        }
+      }
+
+      return null;
+    }
+
     _getObjectX() {
+      const pos3d = this._getObjectPosition3d();
+      if (pos3d) return pos3d[0];
+
+      const pos2d = this._getObjectPosition2d();
+      if (pos2d) return pos2d[0];
+
       return this._readTransformValue(["getX", "GetX"], ["x", "_x"], 0);
     }
 
     _getObjectY() {
+      const pos3d = this._getObjectPosition3d();
+      if (pos3d) return pos3d[1];
+
+      const pos2d = this._getObjectPosition2d();
+      if (pos2d) return pos2d[1];
+
       return this._readTransformValue(["getY", "GetY"], ["y", "_y"], 0);
     }
 
     _getObjectZ() {
+      const pos3d = this._getObjectPosition3d();
+      if (pos3d) return pos3d[2];
+
       return this._readTransformValue(
         ["getZElevation", "GetZElevation", "getElevation", "GetElevation", "getZ", "GetZ"],
         ["zElevation", "elevation", "z", "_z"],
@@ -1757,10 +1839,43 @@ export default function (parentClass) {
     _applyPosition(x, y, z = null) {
       const targets = this._getTransformTargets();
       const hasZ = z !== null && z !== undefined;
+      const xyPayloads = [[x, y], [[x, y]]];
+      const xyMethodNames = ["setPosition", "SetPosition", "setXY", "SetXY"];
+
+      if (hasZ) {
+        const xyzPayloads = [[x, y, z], [[x, y, z]]];
+        const xyzMethodNames = ["setPosition3d", "SetPosition3d", "setPosition3D", "SetPosition3D", "setXYZ", "SetXYZ"];
+
+        if (this._tryApplyWithCache("positionXYZ", targets, xyzMethodNames, xyzPayloads)) {
+          return true;
+        }
+
+        // Fallback: apply XY via setPosition/setXY, then apply Z separately.
+        if (this._tryApplyWithCache("positionXY", targets, xyMethodNames, xyPayloads)) {
+          const setZOnly = ["setZ", "SetZ", "setZElevation", "SetZElevation", "setElevation", "SetElevation"];
+          for (const target of targets) {
+            if (!target) continue;
+            for (const methodName of setZOnly) {
+              const fn = target[methodName];
+              if (typeof fn !== "function") continue;
+              try {
+                fn.call(target, z);
+                return true;
+              } catch (_) {
+                // Keep trying alternate runtime surfaces.
+              }
+            }
+          }
+
+          return this._setTransformProperty("zElevation", z)
+            || this._setTransformProperty("elevation", z)
+            || this._setTransformProperty("z", z)
+            || false;
+        }
+      }
+
       const payloads = hasZ ? [[x, y, z], [[x, y, z]], [x, y], [[x, y]]] : [[x, y], [[x, y]]];
-      const methodNames = hasZ
-        ? ["setPosition", "SetPosition", "setXYZ", "SetXYZ", "setXY", "SetXY"]
-        : ["setPosition", "SetPosition", "setXY", "SetXY"];
+      const methodNames = hasZ ? ["setXYZ", "SetXYZ"] : xyMethodNames;
       if (this._tryApplyWithCache(hasZ ? "positionXYZ" : "positionXY", targets, methodNames, payloads)) {
         return true;
       }

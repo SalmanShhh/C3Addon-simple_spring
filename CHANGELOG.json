@@ -68,5 +68,10 @@
     "added": "- Added Set Spring Settings From Duration.\n- Added ACE for knowing whether a spring is a \"Constant\" spring.\n- Added ACE for getting an estimated time it will take to reach target value (SpringTimeToTargetSeconds)\n- Added Expression for getting the colour space being used by a Colour Spring.",
     "changed": "- Improved naming scheme of Spring ACEs\n- Clean up debugger of old deprecated values.\n- Combine Apply Springing ACEs to lessen the ACE counts.",
     "fixed": "- Fix Spring Triggers.\n- Fix Springing Angle Triggers.\n- Fix Async Actions so they work with the \"Wait for previous actions to complete\" action similar to the Tween Behaviour."
+  },
+  "2.0.0.1": {
+    "added": "",
+    "changed": "",
+    "fixed": "fix positioning"
   }
 }
